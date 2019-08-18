@@ -9,3 +9,4 @@ rm(list=ls())
 
 setwd("C:/R/bachelorproject/cruimport")
 
+all_dat <- scan("./", skip = 5, what = "list")
