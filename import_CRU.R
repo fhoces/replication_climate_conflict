@@ -15,3 +15,7 @@ head(gridtable)
 summary(gridtable)
 
 gridtable <- subset(gridtable, select = c(x,y))
+
+tmplines <- grep(x = crutmp81_90, pattern = "^Grid-ref", value = TRUE, invert = TRUE)
+tmptable <- read.table(text = tmplines)
+names(tmptable) <- c("Jan","Feb","Mar","Apr", "Jun","Jul","Aug","Sep","Oct","Nov","Dec")
