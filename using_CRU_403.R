@@ -4,6 +4,7 @@ setwd("C:/R/bachelorproject")
 
 ## importing the CRU data v4.03 (all)
 
+
 #set path and file name
 
 ncpath <- "C:/R/bachelorproject/data/cru_data/"
@@ -85,9 +86,19 @@ head(na.omit(tmp_mat)) #okay this looks not like it should i think but let's try
 tmp_all_df <- data.frame(cbind(lonlat, tmp_mat))
 
 #rename col names
-years <- 1901:2016
+years <- 1901:2018
 month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 names(tmp_all_df)[1:2] <- paste(c("lon","lat"))
 names(tmp_all_df) [3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
 
+str(tmp_all_df)
+
+#drop irrelevant columns , leaving only 1981-2002
+
+library(tidyverse)
+years1 <- 1981:2002
+
+#remcol <- c(rep(years, each=12) rep(month, times=22))
+#r#emcol
+#tmp_all_df %>% select(one_of)
