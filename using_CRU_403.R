@@ -43,3 +43,51 @@ dunits <- ncatt_get(cru_all, dname, "units")
 fillvalue <- ncatt_get(cru_all, dname, "_FillValue")
 dim(tmp_array)
 
+nc_close(cru_all)
+
+## now convert into easy use format
+
+library(chron)
+
+# convert time , strgsplit
+
+tustr <- strsplit(tunits$value, " ")
+tustr
+
+tdstr <- strsplit(unlist(tustr)[3], "-")
+tmonth <- as.integer(unlist(tdstr)[2])
+tday <- as.integer(unlist(tdstr)[3])
+tyear <- as.integer(unlist(tdstr)[1])
+chron(time, origin. = c(tmonth,tday,tyear), format = c(dates="m/d/year"))
+
+# replace netCDF fillvalues with NA's
+
+tmp_array[tmp_array==fillvalue$value] <- NA
+
+## create a data frame -- reshape data
+
+#matrix nlon*nlat rows of 2 columns (lon + lat)
+
+lonlat <- as.matrix(expand.grid(lon,lat))
+dim(lonlat)
+
+#reshape the array into a vector
+tmp_vec <- as.vector(tmp_array)
+length(tmp_vec)
+
+#reshape this vector into a matrix
+
+tmp_mat <- matrix(tmp_vec, nrow = nlon*nlat, ncol=nt)
+dim(tmp_mat)
+
+head(na.omit(tmp_mat)) #okay this looks not like it should i think but let's try
+
+tmp_all_df <- data.frame(cbind(lonlat, tmp_mat))
+
+#rename col names
+years <- 1901:2016
+month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+names(tmp_all_df)[1:2] <- paste(c("lon","lat"))
+names(tmp_all_df) [3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
+
