@@ -99,6 +99,10 @@ str(tmp_all_df)
 library(tidyverse)
 years1 <- 1981:2002
 
-#remcol <- c(rep(years, each=12) rep(month, times=22))
-#r#emcol
-#tmp_all_df %>% select(one_of)
+removecols <- paste(rep(years1, each=12), rep(month, times=22))
+head(remcol,13)
+tail(remcol,13)
+head(tmp_all_df,13)
+tail(tmp_all_df,13)
+tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp that we need: 1981-2002
+head(tmp_red_df,13) #looks about right
