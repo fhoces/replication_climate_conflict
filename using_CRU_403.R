@@ -1,9 +1,16 @@
+##set up
+
 rm(list = ls())
 
 setwd("C:/R/bachelorproject")
 
-## importing the CRU data v4.03 (all)
+library(ncdf4)
+library(tidyverse)
+library(chron)
+library(rgdal)
 
+
+## importing the CRU data v4.03 (all)
 
 #set path and file name
 
@@ -11,8 +18,6 @@ ncpath <- "C:/R/bachelorproject/data/cru_data/"
 ncname <- "cru_ts4.03.1901.2018.tmp.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "tmp"
-
-library(ncdf4)
 
 #open netCDF file
 
@@ -41,16 +46,14 @@ nt
 # get temperature
 
 tmp_array <- ncvar_get(cru_all, dname)
-dlname <- ncatt_get(cru_all, dname, "long_name")
 dunits <- ncatt_get(cru_all, dname, "units")
 fillvalue <- ncatt_get(cru_all, dname, "_FillValue")
 dim(tmp_array)
 
 nc_close(cru_all)
 
-## now convert into easy use format
 
-library(chron)
+## now convert into easy use format
 
 # convert time , strgsplit
 
@@ -61,11 +64,13 @@ tdstr <- strsplit(unlist(tustr)[3], "-")
 tmonth <- as.integer(unlist(tdstr)[2])
 tday <- as.integer(unlist(tdstr)[3])
 tyear <- as.integer(unlist(tdstr)[1])
-chron(time, origin. = c(tmonth,tday,tyear), format = c(dates="m/d/year"))
+chron(time, origin. = c(tmonth,tday,tyear), format = c(dates="m/d/year")) #just to have a look
 
 # replace netCDF fillvalues with NA's
 
 tmp_array[tmp_array==fillvalue$value] <- NA
+head(tmp_array)
+
 
 ## create the relevant data frame -- reshape data
 
@@ -75,6 +80,7 @@ lonlat <- as.matrix(expand.grid(lon,lat))
 dim(lonlat)
 
 #reshape the array into a vector
+
 tmp_vec <- as.vector(tmp_array)
 length(tmp_vec)
 
@@ -83,38 +89,41 @@ length(tmp_vec)
 tmp_mat <- matrix(tmp_vec, nrow = nlon*nlat, ncol=nt)
 dim(tmp_mat)
 
-head(na.omit(tmp_mat)) #okay this looks not like it should i think but let's try
-
 tmp_all_df <- data.frame(cbind(lonlat, tmp_mat))
+
+rm(tmp_array)
+rm(tmp_vec)
+rm(tmp_mat)
 
 #rename col names
 years <- 1901:2018
 month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 names(tmp_all_df)[1:2] <- paste(c("lon","lat"))
-names(tmp_all_df) [3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
+names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
 
 str(tmp_all_df)
 
 #drop irrelevant columns , leaving only 1981-2002
 
-library(tidyverse)
 years1 <- 1981:2002
 
 removecols1 <- c("lon","lat")
 removecols2 <- paste(rep(years1, each=12), rep(month, times=22))
 removecols <- c(removecols1,removecols2)
-head(remcol,13)
-tail(remcol,13)
-head(tmp_all_df,13)
-tail(tmp_all_df,13)
+head(removecols,13)
+tail(removecols,13)
+head(tmp_all_df)
+
 tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1981-2002
-head(tmp_red_df,13) #looks about right
+head(tmp_red_df)
+head(na.omit(tmp_red_df))
 
 rm(tmp_all_df)
+
+
 ##now import the country geodata through the GADM shapefile
 
-library(rgdal)
 #import on country level
 
 gadmshape0 <- readOGR(dsn = "./data/gadm/gadm36_0.shp", layer = "gadm36_0")
@@ -146,6 +155,6 @@ tmp_pts
 
 #get the location for the grid cells in tmp dataframe
 
-loc_tmps1 <- tmp_pts %over% gadmshape0afr
-loc_tmps1
-na.omit(loc_tmps1)
+loc_tmps <- tmp_pts %over% gadmshape0afr
+na.omit(loc_tmps)
+summary(loc_tmps)
