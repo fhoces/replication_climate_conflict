@@ -101,14 +101,17 @@ str(tmp_all_df)
 library(tidyverse)
 years1 <- 1981:2002
 
-removecols <- paste(rep(years1, each=12), rep(month, times=22))
+removecols1 <- c("lon","lat")
+removecols2 <- paste(rep(years1, each=12), rep(month, times=22))
+removecols <- c(removecols1,removecols2)
 head(remcol,13)
 tail(remcol,13)
 head(tmp_all_df,13)
 tail(tmp_all_df,13)
-tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp that we need: 1981-2002
+tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1981-2002
 head(tmp_red_df,13) #looks about right
 
+rm(tmp_all_df)
 ##now import the country geodata through the GADM shapefile
 
 library(rgdal)
@@ -116,7 +119,7 @@ library(rgdal)
 
 gadmshape0 <- readOGR(dsn = "./data/gadm/gadm36_0.shp", layer = "gadm36_0")
 class(gadmshape0)
-head(gadmshape0)
+summary(gadmshape0)
 
 #delete non-african countries
 
@@ -124,7 +127,25 @@ iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","
 
 gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
 
-glimpse(gadmshape0afr)
-head(gadmshape0afr)
+summary(gadmshape0afr)
+rm(gadmshape0)
 
+##get tmp data for the single countries
 
+#delete irrelevant grids in the tmp_red_df dataframe
+#we see in gadmshape0afr for which extent we need data for
+
+tmp_redafr_df <- subset(tmp_red_df, lon >= -25.75 & lon <=63.75 & lat >= -40.75 & lat <= 37.75)
+head(tmp_redafr_df)
+
+#turn tmp_red_df into Spatialpoints
+
+tmp_coords <- cbind(tmp_redafr_df$lon, tmp_redafr_df$lat)
+tmp_pts <- SpatialPoints(coords = tmp_coords, proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+tmp_pts
+
+#get the location for the grid cells in tmp dataframe
+
+loc_tmps1 <- tmp_pts %over% gadmshape0afr
+loc_tmps1
+na.omit(loc_tmps1)
