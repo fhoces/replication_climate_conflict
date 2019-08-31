@@ -12,6 +12,8 @@ ncname <- "cru_ts4.03.1901.2018.tmp.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "tmp"
 
+library(ncdf4)
+
 #open netCDF file
 
 cru_all <- nc_open(ncfname)
@@ -65,7 +67,7 @@ chron(time, origin. = c(tmonth,tday,tyear), format = c(dates="m/d/year"))
 
 tmp_array[tmp_array==fillvalue$value] <- NA
 
-## create a data frame -- reshape data
+## create the relevant data frame -- reshape data
 
 #matrix nlon*nlat rows of 2 columns (lon + lat)
 
@@ -106,3 +108,23 @@ head(tmp_all_df,13)
 tail(tmp_all_df,13)
 tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp that we need: 1981-2002
 head(tmp_red_df,13) #looks about right
+
+##now import the country geodata through the GADM shapefile
+
+library(rgdal)
+#import on country level
+
+gadmshape0 <- readOGR(dsn = "./data/gadm/gadm36_0.shp", layer = "gadm36_0")
+class(gadmshape0)
+head(gadmshape0)
+
+#delete non-african countries
+
+iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","REU","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ESH","ZMB","ZWE")
+
+gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
+
+glimpse(gadmshape0afr)
+head(gadmshape0afr)
+
+
