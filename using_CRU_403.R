@@ -96,6 +96,7 @@ rm(tmp_vec)
 rm(tmp_mat)
 
 #rename col names
+
 years <- 1901:2018
 month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -122,7 +123,7 @@ head(na.omit(tmp_red_df))
 rm(tmp_all_df)
 
 
-##now import the country geodata through the GADM shapefile
+##import the country geodata through the GADM shapefile
 
 #import on country level
 
@@ -139,6 +140,7 @@ gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
 summary(gadmshape0afr)
 rm(gadmshape0)
 
+
 ##get tmp data for the single countries
 
 #delete irrelevant grids in the tmp_red_df dataframe
@@ -146,6 +148,9 @@ rm(gadmshape0)
 
 tmp_redafr_df <- subset(tmp_red_df, lon >= -25.75 & lon <=63.75 & lat >= -40.75 & lat <= 37.75)
 head(tmp_redafr_df)
+
+#rename the rows
+row.names(tmp_redafr_df) <- c(1:28440)
 
 #turn tmp_red_df into Spatialpoints
 
@@ -158,3 +163,39 @@ tmp_pts
 loc_tmps <- tmp_pts %over% gadmshape0afr
 na.omit(loc_tmps)
 summary(loc_tmps)
+
+##merging the temperature (incl. lon +lat) with the country codes
+
+str(loc_tmps)
+str(tmp_redafr_df)
+head(na.omit(loc_tmps))
+
+full_tmp <- bind_cols(loc_tmps, tmp_redafr_df)
+dim(full_tmp)
+
+#delete obs. with either no tmp-data or not defined for an african country
+
+full_tmp <- na.omit(full_tmp)
+dim(full_tmp)
+head(full_tmp)
+
+#NAME_0 is unnecessary, and we won't need lon and lat anymore
+
+full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
+
+## the temperature is first averaged over the grid cells in a country, then over the month of a year
+
+#averaging over cells in country
+
+country_tmp <- aggregate(full_tmp[2:265], list(full_tmp$GID_0), mean)
+names(country_tmp)[1] <- "iso3"
+
+# calculate yearly data
+
+country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the values to use "apply" ; _num stands for numerical
+
+country_tmp_ann <- country_tmp %>% transmute (iso3, "1981" = rowMeans(select(.,`1981 Jan`:`1981 Dec`)))
+country_tmp_ann
+
+tab <- matrix(c(1,11,111,2,22,222,3,33,333), byrow = TRUE,nrow = 3)
+tab
