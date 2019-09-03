@@ -183,19 +183,33 @@ head(full_tmp)
 
 full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
 
+  
 ## the temperature is first averaged over the grid cells in a country, then over the month of a year
+
 
 #averaging over cells in country
 
 country_tmp <- aggregate(full_tmp[2:265], list(full_tmp$GID_0), mean)
 names(country_tmp)[1] <- "iso3"
+country_tmp
+
+# restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
+
+country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
+tmp_vec1 <- as.vector(t(country_tmp_num))
+length(tmp_vec1)
+iso3 <- subset (country_tmp, select = iso3)
+iso3 <- as.vector(t(iso3))
+iso3rep <- unlist(rep(iso3,each = 264))  #countrycodes for all the 264 obs. of tmp per country (12m*22y)
+summary(iso3rep)
+iso3rep
+colnames1 <- colnames(country_tmp_num)
+
+country_tmp <- data.frame(iso3rep,colnames1,tmp_vec1) 
+colnames(country_tmp) <- c("iso3","months", "tmp") 
+view(country_tmp)
 
 # calculate yearly data
 
-country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the values to use "apply" ; _num stands for numerical
-
-country_tmp_ann <- country_tmp %>% transmute (iso3, "1981" = rowMeans(select(.,`1981 Jan`:`1981 Dec`)))
+country_tmp_ann <- cbind(iso3rep,country_tmp %>% group_by(iso3) %>% separate(months, into=c("years", "months")) %>% group_by(years)%>% summarise(tmp=mean(tmp)))
 country_tmp_ann
-
-tab <- matrix(c(1,11,111,2,22,222,3,33,333), byrow = TRUE,nrow = 3)
-tab
