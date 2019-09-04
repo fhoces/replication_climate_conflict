@@ -216,7 +216,7 @@ dim(country_tmp_ann)
 
 ### temperature finished
 
-write.csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
+write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
 
 ##importing precipitation
 
@@ -338,13 +338,12 @@ length(pre_vec1)
 
 country_pre <- data.frame(iso3rep,colnames1,pre_vec1) 
 colnames(country_pre) <- c("iso3","months", "pre") 
-view(country_pre)
 
 # calculate yearly data
 
 country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(mean=mean(pre))
 
-write.csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
+write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
 ### precipitation finished
 
