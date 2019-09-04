@@ -207,11 +207,12 @@ colnames1 <- colnames(country_tmp_num)
 
 country_tmp <- data.frame(iso3rep,colnames1,tmp_vec1) 
 colnames(country_tmp) <- c("iso3","months", "tmp") 
-view(country_tmp)
-
+summary(country_tmp)
+dim(country_tmp)
 # calculate yearly data
 
-country_tmp_ann <- cbind(iso3rep,country_tmp %>% group_by(iso3) %>% separate(months, into=c("years", "months")) %>% group_by(years)%>% summarise(tmp=mean(tmp)))
+country_tmp_ann <- country_tmp %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(tmp=mean(tmp))
+dim(country_tmp_ann)
 
 ### temperature finished
 
@@ -228,7 +229,7 @@ dname <- "pre"
 
 cru_all_pre <- nc_open(ncfname)
 cru_all_pre
-d
+
 # get precipitation
 
 pre_array <- ncvar_get(cru_all_pre, dname)
@@ -341,7 +342,9 @@ view(country_pre)
 
 # calculate yearly data
 
-country_pre_ann <- cbind(iso3rep,country_pre %>% group_by(iso3) %>% separate(months, into=c("years", "months")) %>% group_by(years)%>% summarise(pre=mean(pre)))
+country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(mean=mean(pre))
+
+write.csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
 ### precipitation finished
 
