@@ -8,7 +8,7 @@ library(ncdf4)
 library(tidyverse)
 library(chron)
 library(rgdal)
-
+library(readxl)
 
 ## importing the CRU data v4.03 (all)
 
@@ -130,7 +130,8 @@ rm(tmp_all_df)
 gadmshape0 <- readOGR(dsn = "./data/gadm/gadm36_0.shp", layer = "gadm36_0")
 class(gadmshape0)
 summary(gadmshape0)
-
+gadmshape0$NAME_0
+gadmshape0$GID_0
 #delete non-african countries
 
 iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","REU","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ESH","ZMB","ZWE")
@@ -347,3 +348,18 @@ write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
 ### precipitation finished
 
+### import conflict data
+
+conflict <- read_xls("./data/conflict/MainConflictTable.xls")
+
+## filter down to relevant data
+
+#delete obs. not between 1981 and 2002
+
+conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2002)
+
+#observations in african countries
+
+table(conflict$Location)
+
+lala <- c("Algeria", "Angola","Burkina Faso", "Mali", "Burundi" ,"Cameroon", "Central Afican Republic", "Chad", "Libya", "Nigera", "Comoros", "Congo", "Cote D'Ivoire", "Democratic Republic of Congo (Zaire)", "Democratic Republic of Yemen, People's Republic of Yemen", "Djibouti", "Egypt", "Eritrea", "Ethiopia", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Mali", "Morocco", "Mozambique", "Niger", "Rwanda", "Senegal", "Sierra Leone", "Somalia", "South Africa", "Sudan", "Togo", "Trinidad and Tobago", "Uganda", "Yemen (Arab Republic of Yemen)")
