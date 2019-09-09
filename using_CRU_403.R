@@ -133,10 +133,20 @@ class(gadmshape0)
 summary(gadmshape0)
 gadmshape0$NAME_0
 gadmshape0$GID_0
+
+#catch dataframe of iso codes and name
+countrypolygons.df <- as.data.frame(gadmshape0)
+
 #delete non-african countries
 
-iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","REU","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ESH","ZMB","ZWE")
+#ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME HERE.
+#analytical choice: defining african countries as members of UN, which are 54. this leaves out two african states: Reunion (part of France) and West Sahara (disputed)
 
+#according to www.CountryAreaCode.net and https://www.worldometers.info/geography/how-many-countries-in-africa/
+
+iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ZMB","ZWE")
+
+#is there any iso code that's defin
 gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
 
 summary(gadmshape0afr)
@@ -366,13 +376,22 @@ table(conflict$Location)
 #duplicate the rows which have multiple locations
 
 conflict <- cSplit(conflict, "Location", sep = ",", direction = "long")
-
+conflict <- conflict %>% rename(countryname = Location)
 conflictcountries <- c("Algeria", "Angola","Burkina Faso", "Mali", "Burundi" ,"Cameroon", "Central Afican Republic", "Chad", "Libya", "Nigera", "Comoros", "Congo", "Cote D'Ivoire", "Democratic Republic of Congo (Zaire)", "Democratic Republic of Yemen, People's Republic of Yemen", "Djibouti", "Egypt", "Eritrea", "Ethiopia", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Mali", "Morocco", "Mozambique", "Niger", "Rwanda", "Senegal", "Sierra Leone", "Somalia", "South Africa", "Sudan", "Togo", "Trinidad and Tobago", "Uganda", "Yemen (Arab Republic of Yemen)") #observations on african ground
 
-iso3nametable <- data.frame(c("DZA", "AGO", "BEN", "BWA", "BFA", "BDI", "CMR", "CPV", "CAF", "COM", "COD;ZAR", "DJI", "EGY", "GNQ", "ERI", "ETH", "GAB", "GMB", "GHA", "GIN", "GNB", "CIV", "KEN", "LSO", "LBR", "LBY", "MDG", "MWI", "MLI", "MRT", "MUS", "MAR", "MOZ", "NAM", "NER", "NGA", "COG", "REU", "RWA", "SHN", "STP", "SEN", "SYC", "SLE", "SOM", "ZAF", "SSD", "SDN", "SWZ", "TZA", "TGO", "TUN", "UGA", "ESH", "ZMB", "ZWE"), 
-                            c("Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cameroon", "Cape Verde", "Central African Republic", "Comoros", "Democratic Republic of the Congo", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Cote d'Ivoire", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritiana", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Republic of Congo;Congo, Rep.", "Reunion", "Rwanda", "Saint Helena", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Swaziland", "Tanzania", "Togo", "Tunisia", "Uganda", "Western Sahara", "Zambia", "Zimbabwe"))
+#create table of iso3 names and country names, for better comparability
 
-conflict <- conflict %>% mutate(iso3 = (case_when( Location == "Algeria" ~ "DZA",
+iso3nametable <- data.frame(iso3 = c("DZA", "AGO", "BEN", "BWA", "BFA", "BDI", "CMR", "CPV", "CAF", "COM", "COD;ZAR", "DJI", "EGY", "GNQ", "ERI", "ETH", "GAB", "GMB", "GHA", "GIN", "GNB", "CIV", "KEN", "LSO", "LBR", "LBY", "MDG", "MWI", "MLI", "MRT", "MUS", "MAR", "MOZ", "NAM", "NER", "NGA", "COG", "REU", "RWA", "SHN", "STP", "SEN", "SYC", "SLE", "SOM", "ZAF", "SSD", "SDN", "SWZ", "TZA", "TGO", "TUN", "UGA", "ESH", "ZMB", "ZWE"), 
+                            countryname = c("Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cameroon", "Cape Verde", "Central African Republic", "Comoros", "Democratic Republic of the Congo", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Cote d'Ivoire", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritiana", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Republic of Congo;Congo, Rep.", "Reunion", "Rwanda", "Saint Helena", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Swaziland", "Tanzania", "Togo", "Tunisia", "Uganda", "Western Sahara", "Zambia", "Zimbabwe"))
+iso3nametable <- cSplit(iso3nametable, "iso3", sep = ";", direction = "long")
+iso3nametable <- cSplit(iso3nametable, "countryname", sep = ";", direction = "long")
+iso3nametable
+
+#let's see which countries are in conflict table that we didn#t record
+
+anti_join(subset(conflict,select = "countryname"), subset(iso3nametable, select = "countryname"))
+
+#conflict <- conflict %>% mutate(iso3 = (case_when( Location == "Algeria" ~ "DZA",
                                                    Location == "Angola" ~ "AGO",
                                                    "Benin" ~ "BEN",
                                                    "Botswana" ~ "BWA",

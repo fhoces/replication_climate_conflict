@@ -1,9 +1,27 @@
-## we're comparing my esults to the original files
+## we're comparing my results to the original files
+## country observations
+library(dplyr)
+library(compare)
+library(tidyverse)
 
+rm(list = ls())
+
+setwd("C:/R/bachelorproject/climate_conflict_replication_(original)")
+climconf <- read_csv("./clim_conflict_for_R.csv")
+
+unique(climconf$countryisocode)
+
+iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ZMB","ZWE")
+str(iso3afr)
+iso3afrburke <- as.character(unique(climconf$countryisocode))
+
+iso3afr[!iso3afr %in% iso3afrburke]
+iso3afrburke[!iso3afrburke %in% iso3afr]
+
+
+##
 rm(list=ls())
 
-library(compare)
-library(dplyr)
 
 setwd("C:/R/bachelorproject/")
 pre <- read.csv("./csv_files/country_pre_ann.csv",stringsAsFactors = FALSE)
