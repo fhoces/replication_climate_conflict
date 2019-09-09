@@ -9,6 +9,7 @@ library(tidyverse)
 library(chron)
 library(rgdal)
 library(readxl)
+library(splitstackshape)
 
 ## importing the CRU data v4.03 (all)
 
@@ -362,4 +363,32 @@ conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2002)
 
 table(conflict$Location)
 
-lala <- c("Algeria", "Angola","Burkina Faso", "Mali", "Burundi" ,"Cameroon", "Central Afican Republic", "Chad", "Libya", "Nigera", "Comoros", "Congo", "Cote D'Ivoire", "Democratic Republic of Congo (Zaire)", "Democratic Republic of Yemen, People's Republic of Yemen", "Djibouti", "Egypt", "Eritrea", "Ethiopia", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Mali", "Morocco", "Mozambique", "Niger", "Rwanda", "Senegal", "Sierra Leone", "Somalia", "South Africa", "Sudan", "Togo", "Trinidad and Tobago", "Uganda", "Yemen (Arab Republic of Yemen)")
+#duplicate the rows which have multiple locations
+
+conflict <- cSplit(conflict, "Location", sep = ",", direction = "long")
+
+conflictcountries <- c("Algeria", "Angola","Burkina Faso", "Mali", "Burundi" ,"Cameroon", "Central Afican Republic", "Chad", "Libya", "Nigera", "Comoros", "Congo", "Cote D'Ivoire", "Democratic Republic of Congo (Zaire)", "Democratic Republic of Yemen, People's Republic of Yemen", "Djibouti", "Egypt", "Eritrea", "Ethiopia", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Mali", "Morocco", "Mozambique", "Niger", "Rwanda", "Senegal", "Sierra Leone", "Somalia", "South Africa", "Sudan", "Togo", "Trinidad and Tobago", "Uganda", "Yemen (Arab Republic of Yemen)") #observations on african ground
+
+iso3nametable <- data.frame(c("DZA", "AGO", "BEN", "BWA", "BFA", "BDI", "CMR", "CPV", "CAF", "COM", "COD;ZAR", "DJI", "EGY", "GNQ", "ERI", "ETH", "GAB", "GMB", "GHA", "GIN", "GNB", "CIV", "KEN", "LSO", "LBR", "LBY", "MDG", "MWI", "MLI", "MRT", "MUS", "MAR", "MOZ", "NAM", "NER", "NGA", "COG", "REU", "RWA", "SHN", "STP", "SEN", "SYC", "SLE", "SOM", "ZAF", "SSD", "SDN", "SWZ", "TZA", "TGO", "TUN", "UGA", "ESH", "ZMB", "ZWE"), 
+                            c("Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cameroon", "Cape Verde", "Central African Republic", "Comoros", "Democratic Republic of the Congo", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Ethiopia", "Gabon", "Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Cote d'Ivoire", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritiana", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Republic of Congo;Congo, Rep.", "Reunion", "Rwanda", "Saint Helena", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Swaziland", "Tanzania", "Togo", "Tunisia", "Uganda", "Western Sahara", "Zambia", "Zimbabwe"))
+
+conflict <- conflict %>% mutate(iso3 = (case_when( Location == "Algeria" ~ "DZA",
+                                                   Location == "Angola" ~ "AGO",
+                                                   "Benin" ~ "BEN",
+                                                   "Botswana" ~ "BWA",
+                                                   "Burkina Faso" ~ "BFA",
+                                                   "Burundi" ~ "BDI",
+                                                   "Cameroon" ~ "CMR",
+                                                   
+                                                  
+                                               
+  
+  
+  
+  
+  
+  
+  
+)))
+
+
