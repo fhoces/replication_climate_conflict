@@ -125,6 +125,7 @@ rm(tmp_all_df)
 
 
 ##import the country geodata through the GADM shapefile
+#ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. I USE THE GADM DATASET AS A SOURCE FOR COUNTRY GRID INFORMATION. UNFORTUNATELY AUTHORS DIDN'T DEFINE, WHICH SOURCE THEY ARE USING.
 
 #import on country level
 
@@ -136,17 +137,31 @@ gadmshape0$GID_0
 
 #catch dataframe of iso codes and name
 countrypolygons.df <- as.data.frame(gadmshape0)
-
+gadmiso <- as.character(countrypolygons.df$GID_0)
 #delete non-african countries
 
 #ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME HERE.
-#analytical choice: defining african countries as members of UN, which are 54. this leaves out two african states: Reunion (part of France) and West Sahara (disputed)
+#analytical choice: defining african countries as the ones that are existent in the analytical dataset in the original replication files, which are 43 in total . as of yet I do not know why this selection was made. 
+#another choice could be: defining african countries as members of UN, which are 54. this leaves out two african states: Reunion (part of France) and West Sahara (disputed) from the 56 in total african states
+#this could be achieved by iso3afralternative <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ZMB","ZWE")
 
-#according to www.CountryAreaCode.net and https://www.worldometers.info/geography/how-many-countries-in-africa/
+iso3afr <- c("GNB", "GNB", "MLI", "SEN", "BEN", "MRT", "NER", "CIV", "GIN", "BFA", "LBR", "SLE", "GHA", "TGO", "CMR", "NGA", "GAB","CAF", "TCD", "COG", "ZAR", "UGA", "KEN", "TZA", "BDI", "RWA", "SOM","DJI","ETH","AGO","MOZ","ZMB","ZWE","MWI","ZAF","NAM","LSO","BWA","SWZ","MDG","SDN")
+ 
+#is there any iso code that's defined for our african country vector but not in gadmshape?
 
-iso3afr <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ZMB","ZWE")
+iso3afr[!iso3afr %in% gadmiso]
 
-#is there any iso code that's defin
+#answer is yes: ZAR .. this is former Zaire, now congo, demoocratic republic with the iso code COD
+#redefining this single country
+
+iso3afr <- c("GNB", "GNB", "MLI", "SEN", "BEN", "MRT", "NER", "CIV", "GIN", "BFA", "LBR", "SLE", "GHA", "TGO", "CMR", "NGA", "GAB","CAF", "TCD", "COG", "COD", "UGA", "KEN", "TZA", "BDI", "RWA", "SOM","DJI","ETH","AGO","MOZ","ZMB","ZWE","MWI","ZAF","NAM","LSO","BWA","SWZ","MDG","SDN")
+
+#let's check
+
+iso3afr[!iso3afr %in% gadmiso]
+
+#gives out NULL , so we're good to go now
+
 gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
 
 summary(gadmshape0afr)
@@ -156,13 +171,14 @@ rm(gadmshape0)
 ##get tmp data for the single countries
 
 #delete irrelevant grids in the tmp_red_df dataframe
-#we see in gadmshape0afr for which extent we need data for
+summary(gadmshape0afr)
+#we see in gadmshape0afr for which extent data is defined for a country
 
-tmp_redafr_df <- subset(tmp_red_df, lon >= -25.75 & lon <=63.75 & lat >= -40.75 & lat <= 37.75)
+tmp_redafr_df <- subset(tmp_red_df, lon >= -17.75 & lon <=51.5 & lat >= -35 & lat <= 27.5)
 head(tmp_redafr_df)
 
 #rename the rows
-row.names(tmp_redafr_df) <- c(1:28440)
+row.names(tmp_redafr_df) <- c(1:17375)
 
 #turn tmp_red_df into Spatialpoints
 
@@ -197,7 +213,7 @@ full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
 
   
 ## the temperature is first averaged over the grid cells in a country, then over the month of a year
-
+# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
 
 #averaging over cells in country
 
@@ -295,11 +311,11 @@ rm(pre_all_df)
 #delete irrelevant grids in the pre_red_df dataframe
 #we see in gadmshape0afr for which extent we need data for
 
-pre_redafr_df <- subset(pre_red_df, lon >= -25.75 & lon <=63.75 & lat >= -40.75 & lat <= 37.75)
+pre_redafr_df <- subset(pre_red_df, lon >= -17.75 & lon <=51.5 & lat >= -35 & lat <= 27.5)
 head(pre_redafr_df)
 
 #rename the rows
-row.names(pre_redafr_df) <- c(1:28440)
+row.names(pre_redafr_df) <- c(1:17375)
 
 #turn pre_red_df into Spatialpoints
 
@@ -355,7 +371,12 @@ colnames(country_pre) <- c("iso3","months", "pre")
 
 country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(mean=mean(pre))
 
+dim(country_pre_ann)
+
+#write into file
+
 write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
+
 
 ### precipitation finished
 
