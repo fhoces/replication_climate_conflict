@@ -14,8 +14,8 @@ unique(climconf$countryisocode)
 iso3afralternative <- c("DZA","AGO","BEN","BWA","BFA","BDI","CMR","CPV","CAF","COM","COD","DJI","EGY","GNQ","ERI","ETH","GAB","GMB","GHA","GIN","GNB","CIV","KEN","LSO","LBR","LBY","MDG","MWI","MLI","MRT","MUS","MAR","MOZ","NAM","NER","NGA","COG","RWA","SHN","STP","SEN","SYC","SLE","SOM","ZAF","SSD","SDN","SWZ","TZA","TGO","TUN","UGA","ZMB","ZWE")
 str(iso3afraltive)
 iso3afrburke <- as.character(unique(climconf$countryisocode))
-
-iso3afrburke
+countrynamesafrburke <- as.character(unique(climconf$country))
+countrynamesafrburke
 
 iso3afralternative[!iso3afralternative %in% iso3afrburke]
 iso3afrburke[!iso3afrburke %in% iso3afralternative]
