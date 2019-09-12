@@ -10,6 +10,7 @@ library(chron)
 library(rgdal)
 library(readxl)
 library(splitstackshape)
+library(purrr)
 
 ## importing the CRU data v4.03 (all)
 
@@ -138,6 +139,7 @@ gadmshape0$GID_0
 
 #catch dataframe of iso codes and name
 countrypolygons.df <- as.data.frame(gadmshape0)
+str(countrypolygons.df)
 gadmiso <- as.character(countrypolygons.df$GID_0)
 #delete non-african countries
 
@@ -248,13 +250,15 @@ summary(iso3rep)
 iso3rep
 colnames1 <- colnames(country_tmp_num)
 
-country_tmp <- data.frame(iso3rep,colnames1,tmp_vec1) 
+country_tmp <- data.frame(iso3rep,colnames1,tmp_vec1, stringsAsFactors = FALSE) 
+
 colnames(country_tmp) <- c("iso3","months", "tmp") 
 summary(country_tmp)
 dim(country_tmp)
 # calculate yearly data
 
 country_tmp_ann <- country_tmp %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(tmp=mean(tmp))
+
 dim(country_tmp_ann)
 
 ### temperature finished
@@ -379,12 +383,13 @@ country_pre_num <- subset(country_pre, select = -iso3) #need this subset with on
 pre_vec1 <- as.vector(t(country_pre_num))
 length(pre_vec1)
 
-country_pre <- data.frame(iso3rep,colnames1,pre_vec1) 
+country_pre <- data.frame(iso3rep,colnames1,pre_vec1,stringsAsFactors = FALSE) 
+str(country_pre)
 colnames(country_pre) <- c("iso3","months", "pre") 
 
 # calculate yearly data
 
-country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(mean=mean(pre))
+country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(pre=mean(pre))
 
 dim(country_pre_ann)
 
@@ -424,7 +429,7 @@ conflict <- conflict %>% rename(countryname = Location)
 
 ##ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 144.
 
-africancountries <- data.frame(iso3afr,
+africancountries <- data.frame(iso3 = iso3afr,
                                countryname = c("Guinea-Bissau", 
                                                "Gambia, The", 
                                                "Mali", 
@@ -465,7 +470,8 @@ africancountries <- data.frame(iso3afr,
                                                "Botswana", 
                                                "Swaziland", 
                                                "Madagascar", 
-                                               "Sudan")) #these are from the original replication analytic data
+                                               "Sudan"),
+                                                stringsAsFactors = FALSE) #these are from the original replication analytic data
                                                                                                                                                     
               
 #let's see which countries are in conflict table that we didn't define
@@ -475,7 +481,6 @@ unique(conflict$countryname[!conflict$countryname %in% africancountries$countryn
 #the result are these (narrowed to african countries) , which might have been just different spelled or defined in burke dataset: 
 #c( "Yemen (Arab Republic of Yemen)", "Democratic Republic of Congo (Zaire)", "Morocco", "Mozambique", "Gambia", 
 #   "Democratic Republic of Yemen", "People's Republic of Yemen", "Lybia", "Comoros", "Algeria", "Egypt", "Congo", "Cote D'Ivoire") 
-length(renamecountries)
 
 #checking the other way around
 africancountries$countryname[!africancountries$countryname %in% conflict$countryname]
@@ -515,14 +520,23 @@ conflict <- conflict %>%
   filter(countryname %in% africancountries$countryname) %>% 
   select(countryname, YEAR)
 
-#create iso3 in conflict table for merger
+#delete duplicates
+#ANALYTICAL CHOICE MADE OF TYPE VARIABLE DEFINITION. TREAT COUNTRIES WITH ONE CONFLICT SAME AS WITH MULTIPLE. FIRST RECORDED HERE.
+
+conflict <- conflict %>% distinct()
+
+#make dataframes ready for merger
   
-conflict <- left_join(conflict, africancountries)
+conflict <- left_join(conflict, africancountries) #create iso3 for countries
+conflict <- conflict %>% rename("years" = "YEAR")
+conflict[,2] <- as.character(conflict[,2])
+conflict$conflict <- 1
+
 
 ###import of conflict finished for now
 
 ###merge tmp, pre and conflict
 
-full_join(country_tmp_ann, country_pre_ann) %>%
-  full join(., conflict)
+climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join)
+climate_conflict <- full_join(climate_conflict, africancountries, by = iso3)
 
