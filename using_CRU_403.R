@@ -4,13 +4,12 @@ rm(list = ls())
 
 setwd("C:/R/bachelorproject")
 
-library(ncdf4)
-library(tidyverse)
-library(chron)
-library(rgdal)
-library(readxl)
-library(splitstackshape)
-library(purrr)
+#load packages
+
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies")
+
+# lapply(packages, install.packages, character.only = TRUE) #delete hash to install packages!!
+lapply(packages, library, character.only = TRUE)
 
 ## importing the CRU data v4.03 (all)
 
@@ -532,11 +531,28 @@ conflict <- conflict %>% rename("years" = "YEAR")
 conflict[,2] <- as.character(conflict[,2])
 conflict$conflict <- 1
 
+africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = 22), 
+                                  countryname = rep(africancountries$countryname, each = 22), 
+                                  years = as.character(1981:2002))
 
+conflict <- right_join(conflict, africancountriesrep)
 ###import of conflict finished for now
 
 ###merge tmp, pre and conflict
 
 climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join)
-climate_conflict <- full_join(climate_conflict, africancountries, by = iso3)
+
+climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conlfict)
+
+climate_conflict <- climate_conflict %>% select(countryname, iso3, years, conflict, tmp, pre)
+
+## create year and country dummies
+
+climate_conflict <- climate_conflict %>% dummy_cols(select_columns = c("iso3", "years"))
+
+###let's do some first regressions.
+
+
+
+
 
