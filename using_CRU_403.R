@@ -8,7 +8,8 @@ setwd("C:/R/bachelorproject")
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies")
 
-# lapply(packages, install.packages, character.only = TRUE) #delete hash to install packages!!
+#delete hash to install packages!!
+# lapply(packages, install.packages, character.only = TRUE) 
 lapply(packages, library, character.only = TRUE)
 
 ## importing the CRU data v4.03 (all)
@@ -194,7 +195,7 @@ tmp_redafr_df <- subset(tmp_red_df, lon >= -17.75 & lon <=51.5 & lat >= -35 & la
 head(tmp_redafr_df)
 
 #rename the rows
-row.names(tmp_redafr_df) <- c(1:17375)
+row.names(tmp_redafr_df) <- c(1:nrow(tmp_redafr_df))
 
 #turn tmp_red_df into Spatialpoints
 
@@ -333,7 +334,7 @@ pre_redafr_df <- subset(pre_red_df, lon >= -17.75 & lon <=51.5 & lat >= -35 & la
 head(pre_redafr_df)
 
 #rename the rows
-row.names(pre_redafr_df) <- c(1:17375)
+row.names(pre_redafr_df) <- c(1:nrow(pre_redafr_df))
 
 #turn pre_red_df into Spatialpoints
 
@@ -391,6 +392,10 @@ colnames(country_pre) <- c("iso3","months", "pre")
 country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years) %>% summarise(pre=mean(pre))
 
 dim(country_pre_ann)
+
+#adjust unit : divide by 100
+
+country_pre_ann$pre <- country_pre_ann$pre/100
 
 #write into file
 
@@ -548,11 +553,19 @@ climate_conflict <- climate_conflict %>% select(countryname, iso3, years, confli
 
 ## create year and country dummies
 
-climate_conflict <- climate_conflict %>% dummy_cols(select_columns = c("iso3", "years"))
+#climate_conflict <- climate_conflict %>% dummy_cols(select_columns = c("iso3", "years"))
 
+### write csv
+
+write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 ###let's do some first regressions.
 
+model1 <- lm(conflict ~ tmp + pre + factor(years) + factor(iso3), data = climate_conflict)
 
 
+summary(model1)
+summary(model1, robust = T)
+summary(model1, cluster = c("ccode"))
+summary(model1, robust = T, cluster = c("ccode"))
 
 
