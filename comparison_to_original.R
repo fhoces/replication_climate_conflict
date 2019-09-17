@@ -157,7 +157,7 @@ summary(lm(pre_diff ~ prec_all, clim_diff_table))
 #same
 
 ##well, it does make sense actually for higher values to have 
-##bigger difference : dev. from absolut value would be a much better comparison
+##bigger difference : dev. from absolut value would make a much better comparison
 
 clim_diff_table <- clim_diff_table %>% mutate(tmp_diff_dev = tmp_diff/temp_all,
                                               pre_diff_dev = pre_diff/prec_all)

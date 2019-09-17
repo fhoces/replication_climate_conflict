@@ -6,7 +6,7 @@ setwd("C:/R/bachelorproject")
 
 #load packages
 
-packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies")
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies", "wbstats", "pwt", "datatable")
 
 #delete hash to install packages!!
 # lapply(packages, install.packages, character.only = TRUE) 
@@ -567,5 +567,93 @@ summary(model1)
 summary(model1, robust = T)
 summary(model1, cluster = c("ccode"))
 summary(model1, robust = T, cluster = c("ccode"))
+## looks pretty different --> in comparison with original files we see why ...
+
+###download control data
+
+##GDP data
+##NOTE : the authors state that they derive the GDP from World Bank AND PENN.
+##as only one GDP meassure is used for the regression, it is very unclear to me,
+##how the used GDP per capita has been derived.
+
+#GDP from world bank
+str(wb_cachelist, max.level = 1)
+
+income_vars <- wbsearch(pattern = "gross domestic")
+view(income_vars)
+
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE. 
+#I download GDP per capita information from the World Bank Atlas. 
+#GDP is used by Burke as well, but in the old version of the WDI (May 2009), in 1985 USD values
+
+world_bank <- wb(indicator = c("NY.GDP.PCAP.CD","NY.GDP.PCAP.PP.CD"), startdate = 1981, enddate = 2006, return_wide = T)
+
+world_bank_GDPpc_currentUSD <- world_bank %>% select(iso3 = iso3c, years = date, GDP = NY.GDP.PCAP.CD)
+
+world_bank_GDPpcPPP <- world_bank %>% select(iso3 = iso3c, years = date, GDPpp = NY.GDP.PCAP.PP.CD)
+
+climate_conflict <- left_join(climate_conflict, world_bank_GDPpc_currentUSD)
+climate_conflict <- left_join(climate_conflict, world_bank_GDPpcPPP)
+view(climate_conflict)
+
+plot(climate_conflict$GDPpp, climate_conflict$GDP)
+
+#GDP from PENN
+#ANALYTICAL CHOICE OF TYPE OTHERS - PROCESSING
+#using pwt 6.2
+data("pwt6.2")
+
+pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, cgdp)
+pwt6.2$years <- as.character(pwt6.2$years)
+climate_conflict <- left_join(climate_conflict, pwt6.2)
+
+##relation between them ?
+
+summary(lm(cgdp ~ GDPpp, data = climate_conflict))
+plot(climate_conflict$GDPpp, climate_conflict$cgdp)
+
+table(is.na(climate_conflict$GDPpp))#405 missing values
+table(is.na(climate_conflict$GDP))# 58 missing values
+table(is.na(climate_conflict$cgdp))#43 missing values
+
+##Polity IV data 
+
+polity_url <- "http://www.systemicpeace.org/inscr/p4v2018.xls"
+dest_polity <- "./data/polity/polityIV.xls"
+download.file(polity_url, dest_polity, mode = "wb")
+
+polity <- read_xls(dest_polity)
+view(polity)
+
+##scodes are different from iso3 codes, so we have to redine them
+
+polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
+uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
+
+unique(polityjoin$country[is.na(polityjoin$iso3)])
+#can we find african countries? 
+#Cote D'Ivoire, Ivory coast, congo brazzaville (this is republic) , congo kinshasa (this is democratic republic), gambia, 
+
+polity$country[polity$country == "Cote D'Ivoire"] <- "Cote d'Ivoire"
+polity$country[polity$country == "Ivory Coast"] <- "Cote d'Ivoire"
+polity$country[polity$country == "Congo Brazzaville"] <- "Congo, Republic of"
+polity$country[polity$country == "Congo Kinshasa"] <- "Congo, Dem. Rep."
+polity$country[polity$country == "Gambia"] <- "Gambia, The"
 
 
+polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
+uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #41 iso codes --> good
+
+
+##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+##using polity2 as meassure of political system.
+
+polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
+  select(years = year, iso3, polity2)
+polityjoin$years <- as.character(polityjoin$years)
+
+climate_conflict <- left_join(climate_conflict, polityjoin)
+
+table(is.na(climate_conflict$polity2)) #9 missing values
+polityNA <- climate_conflict[is.na(climate_conflict$polity2),]
+view(polityNA) #Namibia politic score only starts in 1990
