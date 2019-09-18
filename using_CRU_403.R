@@ -528,10 +528,10 @@ africancountries$countryname[!africancountries$countryname %in% conflict$country
 
 
 #subset conflict data
-##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 419.
+##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 438.
 #if changing the variable defintion for conflict, e.g. not being location but SideA, then needs to be changed here too.
 conflict <- conflict %>% 
-  filter(countryname %in% africancountries$countryname) %>% 
+  filter(countryname %in% africancountries$countryname & Int == 2) %>% 
   select(countryname, YEAR)
 
 #delete duplicates
