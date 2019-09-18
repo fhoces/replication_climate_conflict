@@ -37,7 +37,7 @@ clim_conf_compare <- full_join(climate_conflict_original, climate_conflict, by =
 #conflict
 clim_conf_compare <- clim_conf_compare %>% mutate(conflict_diff = case_when(war_prio_new == conflict ~ 0, TRUE ~ 1))
                   
-table(clim_conf_compare$conflict_diff) # we have 761 equal values and 141 where conflict is reported differently
+table(clim_conf_compare$conflict_diff) # we have 886 equal values and 16 where conflict is reported differently
 
 length(clim_conf_compare$war_prio_new[is.na(clim_conf_compare$war_prio_new)]) # 13 missing 
 length(clim_conf_compare$conflict[is.na(clim_conf_compare$conflict)])
@@ -48,7 +48,7 @@ clim_conf_compare <- clim_conf_compare %>% mutate(conflict_diff = case_when(war_
                                                                             war_prio_new > conflict ~ 1,
                                                                             war_prio_new < conflict ~ -1))
 
-table(clim_conf_compare$conflict_diff) # -1 = 128 , 0 = 761, 1 = 0
+table(clim_conf_compare$conflict_diff) # -1 = 3 , 0 = 886, 1 = 0
 
 # --> only our conflict variable is overreported compared to original replication set !
 # let's see where..
@@ -56,10 +56,10 @@ table(clim_conf_compare$conflict_diff) # -1 = 128 , 0 = 761, 1 = 0
 conflict_diff_table <- clim_conf_compare %>% 
   filter(conflict != war_prio_new) %>% select(years, iso3, war_prio_new, countryname, conflict, conflict_diff)
 
-view(conflict_diff_table)
+view(conflict_diff_table) #ethiopia 1998:2000
 
 #let's research these in PRIO conflict table
-## --> coding of this variable in the original replication file does not make any sense to me!!
+##hmm
 ## 
 ### now compare tmp and pre
 

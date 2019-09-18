@@ -429,15 +429,16 @@ conflict
 
 table(conflict$Location)
 
-#duplicate the rows which have multiple locations
+#duplicate the rows which have multiple locations 
 
-conflict <- cSplit(conflict, "Location", sep = ",", direction = "long", type.convert = "as.character")
+conflict <- cSplit(conflict, "SideA", sep = ",", direction = "long", type.convert = "as.character")
 
 #rename and define the incidence of conflict as conflict in the countries territory -> this seems to be what burke et al. did
 
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
+# we use the location as the indice for a war , not e.g. SideA indicator in PRIO dataset
 
-conflict <- conflict %>% rename(countryname = Location)
+conflict <- conflict %>% rename(countryname = SideA)
 
 #get countrynames from burke
 
@@ -530,6 +531,8 @@ africancountries$countryname[!africancountries$countryname %in% conflict$country
 #subset conflict data
 ##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 438.
 #if changing the variable defintion for conflict, e.g. not being location but SideA, then needs to be changed here too.
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
+#in addition to using location , we now require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
 conflict <- conflict %>% 
   filter(countryname %in% africancountries$countryname & Int == 2) %>% 
   select(countryname, YEAR)
@@ -684,5 +687,38 @@ view(polityNA) #Namibia politic score only starts in 1990
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
+########################
+#comparison to original replication files
 
+climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+
+climate_conflict_original <- climate_conflict_original %>% filter(year_actual %in% years1)
+
+uniqueN(climate_conflict_original$year_actual) #22 unique
+uniqueN(climate_conflict_original$countryisocode) #41 unique
+
+# --> why only 889 obs? 
+
+climate_conflict_original <- climate_conflict_original %>% select(c("year_actual", "countryisocode", "temp_all", "prec_all", "war_prio_new", "gdp", "polity2"))
+climate_conflict_original <- climate_conflict_original %>% rename("years" = "year_actual", "iso3" = "countryisocode")
+climate_conflict_original$years <- as.character(climate_conflict_original$years)
+anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years"))
+
+#rename ZAR to COD, then only 13 obs. missing in original replication file (why?)
+
+climate_conflict_original$iso3[climate_conflict_original$iso3 == "ZAR"] <- "COD" 
+
+anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years")) #better , only namibia and 3 years of angola missing
+
+
+##join tables
+
+clim_conf_compare <- full_join(climate_conflict_original, climate_conflict, by = c("years", "iso3"))
+
+##compare conflict, tmp and pre 
+
+#conflict
+clim_conf_compare <- clim_conf_compare %>% mutate(conflict_diff = case_when(war_prio_new == conflict ~ 0, TRUE ~ 1))
+
+table(clim_conf_compare$conflict_diff) # all equal finally
 
