@@ -5,12 +5,22 @@ rm(list = ls())
 setwd("C:/R/bachelorproject")
 
 #load packages
+package_load <- function(x) {
+  for (i in x) {
+    # require returns TRUE invisibly if it was able to load packages
+    if ( ! require (i, character.only = TRUE)) {
+      # IF package was not able to be loaded ten re-install
+      install.packages(i, dependencies = T)
+      # Load package after installing
+      require( i, character.only = T)
+    }
+    
+  }
+}
 
-packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies", "wbstats", "pwt", "datatable")
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies", "wbstats", "pwt", "data.table")
 
-#delete hash to install packages!!
-# lapply(packages, install.packages, character.only = TRUE) 
-lapply(packages, library, character.only = TRUE)
+package_load(packages)
 
 ## importing the CRU data v4.03 (all)
 
@@ -421,7 +431,7 @@ table(conflict$Location)
 
 #duplicate the rows which have multiple locations
 
-conflict <- cSplit(conflict, "Location", sep = ",", direction = "long")
+conflict <- cSplit(conflict, "Location", sep = ",", direction = "long", type.convert = "as.character")
 
 #rename and define the incidence of conflict as conflict in the countries territory -> this seems to be what burke et al. did
 
@@ -531,21 +541,23 @@ conflict <- conflict %>% distinct()
 
 #make dataframes ready for merger
   
-conflict <- left_join(conflict, africancountries) #create iso3 for countries
+conflict <- left_join(conflict, africancountries, by = c("countryname")) #create iso3 for countries
 conflict <- conflict %>% rename("years" = "YEAR")
 conflict[,2] <- as.character(conflict[,2])
 conflict$conflict <- 1
 
 africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = 22), 
                                   countryname = rep(africancountries$countryname, each = 22), 
-                                  years = as.character(1981:2002))
+                                  years = as.character(1981:2002), 
+                                  stringsAsFactors = F)
 
-conflict <- right_join(conflict, africancountriesrep)
+conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "years", "iso3"))
+
 ###import of conflict finished for now
 
 ###merge tmp, pre and conflict
 
-climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join)
+climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join, by = c("iso3", "years"))
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conlfict)
 
@@ -588,33 +600,33 @@ view(income_vars)
 
 world_bank <- wb(indicator = c("NY.GDP.PCAP.CD","NY.GDP.PCAP.PP.CD"), startdate = 1981, enddate = 2006, return_wide = T)
 
-world_bank_GDPpc_currentUSD <- world_bank %>% select(iso3 = iso3c, years = date, GDP = NY.GDP.PCAP.CD)
+world_bank_GDPpc_currentUSD <- as.data.frame(world_bank %>% select(iso3 = iso3c, years = date, GDP_WB = NY.GDP.PCAP.CD))
 
-world_bank_GDPpcPPP <- world_bank %>% select(iso3 = iso3c, years = date, GDPpp = NY.GDP.PCAP.PP.CD)
+world_bank_GDPpcPPP <- as.data.frame(world_bank %>% select(iso3 = iso3c, years = date, GDPpp_WB = NY.GDP.PCAP.PP.CD))
 
-climate_conflict <- left_join(climate_conflict, world_bank_GDPpc_currentUSD)
-climate_conflict <- left_join(climate_conflict, world_bank_GDPpcPPP)
+climate_conflict <- left_join(climate_conflict, world_bank_GDPpc_currentUSD, by = c("iso3", "years"))
+climate_conflict <- left_join(climate_conflict, world_bank_GDPpcPPP, by = c("iso3", "years"))
 view(climate_conflict)
 
-plot(climate_conflict$GDPpp, climate_conflict$GDP)
+plot(climate_conflict$GDP_WB, climate_conflict$GDPpp_WB)
 
 #GDP from PENN
 #ANALYTICAL CHOICE OF TYPE OTHERS - PROCESSING
 #using pwt 6.2
 data("pwt6.2")
 
-pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, cgdp)
+pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, GDP_pwt6.2 = cgdp) %>% mutate_if(is.factor, as.character)
 pwt6.2$years <- as.character(pwt6.2$years)
-climate_conflict <- left_join(climate_conflict, pwt6.2)
+climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
 
 ##relation between them ?
 
-summary(lm(cgdp ~ GDPpp, data = climate_conflict))
-plot(climate_conflict$GDPpp, climate_conflict$cgdp)
+summary(lm(GDP_pwt6.2 ~ GDPpp_WB, data = climate_conflict))
+plot(climate_conflict$GDPpp_WB, climate_conflict$GDP_pwt6.2)
 
-table(is.na(climate_conflict$GDPpp))#405 missing values
-table(is.na(climate_conflict$GDP))# 58 missing values
-table(is.na(climate_conflict$cgdp))#43 missing values
+table(is.na(climate_conflict$GDPpp_WB))#405 missing values
+table(is.na(climate_conflict$GDP_WB))# 58 missing values
+table(is.na(climate_conflict$GDP_pwt6.2))#43 missing values
 
 ##Polity IV data 
 
@@ -626,7 +638,7 @@ polity <- read_xls(dest_polity)
 view(polity)
 
 ##scodes are different from iso3 codes, so we have to redine them
-
+polity <- as.data.frame(polity) #resolves issue with warning message : unknown or uninitialised column = "country"
 polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
 uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
 
@@ -652,8 +664,25 @@ polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
   select(years = year, iso3, polity2)
 polityjoin$years <- as.character(polityjoin$years)
 
-climate_conflict <- left_join(climate_conflict, polityjoin)
+climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
+table(climate_conflict$countryname) #ethiopia has 23 obs. instead of 22
+
+#looking that up in the polityIV table shows they apparently changed the countrycode in 1993 and have two observations for that year
+#quick wikipedia search shows they got a new constitution in 1994, probably has something to do with that
+#it's behind my scope to decide which one is better.. but it changed only marginaly from 0 to 1 
+#i would drop one randomly , but not so good for reproducability and transparency reasons
+#so I will just drop the worse one (with polity2 score being 0) (the effect of this on the analysis will be assumed to be close to not existent)
+#ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
+
+climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2 == 0),]
+
+
 
 table(is.na(climate_conflict$polity2)) #9 missing values
 polityNA <- climate_conflict[is.na(climate_conflict$polity2),]
 view(polityNA) #Namibia politic score only starts in 1990
+
+write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
+
+
+
