@@ -100,3 +100,5 @@ summary(lm(pre_diff_dev ~ prec_all, clim_diff_table))
 #for effect : same 
 #but: there is a non-marginal intercept which is statistically significant!!
 #which means, my values for precipitations are systematically lower (0.17% on mean) compared to burke data
+
+view(climate_conflict_original %>% select(starts_with("iccyear")))

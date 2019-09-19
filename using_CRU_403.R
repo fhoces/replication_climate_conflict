@@ -18,7 +18,8 @@ package_load <- function(x) {
   }
 }
 
-packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies", "wbstats", "pwt", "data.table")
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies",
+              "wbstats", "pwt", "data.table", "foreign", "plm")
 
 package_load(packages)
 
@@ -271,6 +272,11 @@ country_tmp_ann <- country_tmp %>% separate(months, into=c("years", "months")) %
 
 dim(country_tmp_ann)
 
+#create lag
+
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp))
+
+view(country_tmp_ann)
 ### temperature finished
 
 write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
@@ -406,6 +412,11 @@ dim(country_pre_ann)
 #adjust unit : divide by 100
 
 country_pre_ann$pre <- country_pre_ann$pre/100
+
+#create lag
+
+country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre))
+
 
 #write into file
 
@@ -564,25 +575,11 @@ climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conlfict)
 
-climate_conflict <- climate_conflict %>% select(countryname, iso3, years, conflict, tmp, pre)
-
-## create year and country dummies
-
-#climate_conflict <- climate_conflict %>% dummy_cols(select_columns = c("iso3", "years"))
 
 ### write csv
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
-###let's do some first regressions.
 
-model1 <- lm(conflict ~ tmp + pre + factor(years) + factor(iso3), data = climate_conflict)
-
-
-summary(model1)
-summary(model1, robust = T)
-summary(model1, cluster = c("ccode"))
-summary(model1, robust = T, cluster = c("ccode"))
-## looks pretty different --> in comparison with original files we see why ...
 
 ###download control data
 
@@ -687,6 +684,7 @@ view(polityNA) #Namibia politic score only starts in 1990
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
+
 ########################
 #comparison to original replication files
 
@@ -699,7 +697,6 @@ uniqueN(climate_conflict_original$countryisocode) #41 unique
 
 # --> why only 889 obs? 
 
-climate_conflict_original <- climate_conflict_original %>% select(c("year_actual", "countryisocode", "temp_all", "prec_all", "war_prio_new", "gdp", "polity2"))
 climate_conflict_original <- climate_conflict_original %>% rename("years" = "year_actual", "iso3" = "countryisocode")
 climate_conflict_original$years <- as.character(climate_conflict_original$years)
 anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years"))
@@ -709,16 +706,112 @@ anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years"))
 climate_conflict_original$iso3[climate_conflict_original$iso3 == "ZAR"] <- "COD" 
 
 anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years")) #better , only namibia and 3 years of angola missing
+#not sure why the namibia and angola values are missing
 
 
-##join tables
+##join tables (and leave out the country-year observations missing in burke datafile)
 
-clim_conf_compare <- full_join(climate_conflict_original, climate_conflict, by = c("years", "iso3"))
+clim_conf_compare <- left_join(climate_conflict_original, climate_conflict, by = c("years", "iso3"))
 
 ##compare conflict, tmp and pre 
 
 #conflict
 clim_conf_compare <- clim_conf_compare %>% mutate(conflict_diff = case_when(war_prio_new == conflict ~ 0, TRUE ~ 1))
 
-table(clim_conf_compare$conflict_diff) # all equal finally
+table(clim_conf_compare$conflict_diff) # all equal 
 
+#tmp 
+
+clim_conf_compare <- clim_conf_compare %>% mutate(tmp_diff = temp_all - tmp,
+                                                  pre_diff = prec_all - pre)
+
+clim_diff_table <- clim_conf_compare %>% select(years, iso3, countryname, temp_all,
+                                                prec_all, tmp, pre, tmp_diff, pre_diff)
+
+table(is.na(clim_diff_table)) # all obs. fully defined
+
+view(clim_diff_table) ##alright , these _diff columns don't look very zero-i
+
+#relation?
+
+plot(clim_diff_table$temp_all, clim_diff_table$tmp)
+plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff)
+summary(lm(tmp_diff ~ temp_all, clim_diff_table))
+#this is not good, the temperature value is statistically significant
+#correlated with the temperaturedifference between our models
+
+plot(clim_diff_table$prec_all, clim_diff_table$pre)
+plot(clim_diff_table$prec_all, clim_diff_table$pre_diff)
+summary(lm(pre_diff ~ prec_all, clim_diff_table))
+#same for precipitation
+
+##well, it does make sense actually for higher values to have 
+##bigger difference : dev. from absolut value would make a much better comparison
+
+clim_diff_table <- clim_diff_table %>% mutate(tmp_diff_dev = tmp_diff/temp_all,
+                                              pre_diff_dev = pre_diff/prec_all)
+
+plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff_dev)
+summary(lm(tmp_diff_dev ~ temp_all, clim_diff_table))
+#the effect is still statistically significant, but very marginal 
+
+plot(clim_diff_table$prec_all, clim_diff_table$pre_diff_dev)
+summary(lm(pre_diff_dev ~ prec_all, clim_diff_table))
+#for effect : same 
+#but: there is a non-marginal intercept which is statistically significant!!
+#which means, my values for precipitations are systematically lower (0.185% on mean) compared to burke data
+
+#in total , we expect similar results for the regression , 
+#but lower influence of precipitation on conflict incidence (assuming the positive relationship)
+
+
+###let's do some first regressions.
+
+model1 <- lm(conflict ~ tmp + pre + factor(years) + factor(iso3), data = climate_conflict)
+view(climate_conflict)
+
+summary(model1)
+summary(model1, robust = T)
+summary(model1, cluster = c("ccode"))
+summary(model1, robust = T, cluster = c("ccode"))
+## looks pretty different...
+
+##reproduction original files 
+
+#version1
+countrytimetrends <- grep("^Iccyear", names(climate_conflict_original), value = T) 
+countryfe <- grep("^iccode", names(climate_conflict_original), value = T)
+formula1 <- reformulate(termlabels = c("temp_all",
+                                       "temp_all_lag",
+                                       countrytimetrends,
+                                       countryfe),
+                        
+                        response = "war_prio_new")
+model2 <- lm(formula1, data = climate_conflict_original)
+
+summary(model2)
+summary(model2, robust = T, cluster = c("ccode"))
+
+##looking good
+
+#version2
+climate_conflict_original$years <- as.numeric(climate_conflict_original$years) #has to be numeric for regression
+model3 <- lm(war_prio_new ~ temp_all + temp_all_lag + factor(iso3)*years,data = climate_conflict_original)
+summary(model3)
+summary(model3, robust = T, cluster = c("ccode"))
+
+#same results
+
+
+##use our data
+
+climate_conflict$years <- as.numeric(climate_conflict$years) #need again the numeric value for interaction term
+
+modelme <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years, data = climate_conflict)
+summary(modelme)
+## results differ a bit.. tmp higher and tmp_lag much higher
+
+modelme1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+              data = climate_conflict)
+summary(modelme1)
+#my results are a bit higher than original ones, again
