@@ -19,7 +19,7 @@ package_load <- function(x) {
 }
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies",
-              "wbstats", "pwt", "data.table", "foreign", "plm", "stargazer", "R.utils")
+              "wbstats", "pwt","pwt9.1", "data.table", "foreign", "plm", "stargazer", "R.utils")
 
 package_load(packages)
 
@@ -124,22 +124,25 @@ years <- 1901:2018
 month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 names(tmp_all_df)[1:2] <- paste(c("lon","lat"))
-names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
+names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, times = length(years)))
 
 str(tmp_all_df)
 
-#drop irrelevant columns , leaving only 1981-2002
+#drop irrelevant columns , leaving only 1980-2002
+#ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+#I include year 1980 so I have the climate lag for 1981. 
+#From the original data, I can not see how they computed the lag variable for 1981, but I assume this is how they did it , too.
 
-years1 <- 1981:2002
+years1 <- 1980:2006
 
 removecols1 <- c("lon","lat")
-removecols2 <- paste(rep(years1, each=12), rep(month, times=22))
+removecols2 <- paste(rep(years1, each=12), rep(month, times= length(years1)))
 removecols <- c(removecols1,removecols2)
 head(removecols,13)
 tail(removecols,13)
 head(tmp_all_df)
 
-tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1981-2002
+tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1980-2002
 head(tmp_red_df)
 head(na.omit(tmp_red_df))
 
@@ -271,7 +274,7 @@ full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
 
 #averaging over cells in country
 
-country_tmp <- aggregate(full_tmp[2:265], list(full_tmp$GID_0), mean)
+country_tmp <- aggregate(full_tmp[2:ncol(full_tmp)], list(full_tmp$GID_0), mean)
 names(country_tmp)[1] <- "iso3"
 country_tmp
 
@@ -282,7 +285,7 @@ tmp_vec1 <- as.vector(t(country_tmp_num))
 length(tmp_vec1)
 iso3 <- subset (country_tmp, select = iso3)
 iso3 <- as.vector(t(iso3))
-iso3rep <- unlist(rep(iso3,each = 264))  #countrycodes for all the 264 obs. of tmp per country (12m*22y)
+iso3rep <- unlist(rep(iso3,each = ncol(full_tmp)-1))  #countrycodes for all the 264 obs. of tmp per country (12m*22y)
 summary(iso3rep)
 iso3rep
 colnames1 <- colnames(country_tmp_num)
@@ -366,13 +369,13 @@ rm(pre_mat)
 #rename col names
 
 names(pre_all_df)[1:2] <- paste(c("lon","lat"))
-names(pre_all_df)[3:ncol(pre_all_df)] <- paste(rep(years, each=12), rep(month, times=118))
+names(pre_all_df)[3:ncol(pre_all_df)] <- paste(rep(years, each=12), rep(month, times= length(years)))
 
 str(pre_all_df)
 
 #drop irrelevant columns , leaving only 1981-2002
 
-pre_red_df <- pre_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1981-2002
+pre_red_df <- pre_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1980-2002
 head(tmp_red_df)
 head(na.omit(tmp_red_df))
 
@@ -426,7 +429,7 @@ full_pre <- full_pre %>% select(-NAME_0, -lon, -lat)
 
 #averaging over cells in country
 
-country_pre <- aggregate(full_pre[2:265], list(full_pre$GID_0), mean)
+country_pre <- aggregate(full_pre[2:ncol(full_pre)], list(full_pre$GID_0), mean)
 names(country_pre)[1] <- "iso3"
 country_pre
 
@@ -478,9 +481,9 @@ conflict <- read_xls(xlsfname)
 
 ## filter down to relevant data
 
-#delete obs. not between 1981 and 2002
+#delete obs. not between 1980 and 2006
 
-conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2002)
+conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2006)
 
 conflict
 #observations in african countries
@@ -607,9 +610,9 @@ conflict <- conflict %>% rename("years" = "YEAR")
 conflict[,2] <- as.character(conflict[,2])
 conflict$conflict <- 1
 
-africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = 22), 
-                                  countryname = rep(africancountries$countryname, each = 22), 
-                                  years = as.character(1981:2002), 
+africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = length(years1)), 
+                                  countryname = rep(africancountries$countryname, each = length(years1)), 
+                                  years = as.character(years1), 
                                   stringsAsFactors = F)
 
 conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "years", "iso3"))
@@ -622,7 +625,8 @@ climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conlfict)
 
-
+climate_conflict <- climate_conflict %>% filter(!years == 1980) #only needed 1980 to create the lag, as stated above
+view(climate_conflict)
 ### write csv
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
@@ -657,6 +661,11 @@ climate_conflict <- left_join(climate_conflict, world_bank_GDPpc_currentUSD, by 
 climate_conflict <- left_join(climate_conflict, world_bank_GDPpcPPP, by = c("iso3", "years"))
 view(climate_conflict)
 
+view(climate_conflict[is.na(climate_conflict$GDP_WB) & climate_conflict$years <= 2002,]) #different ones
+view(climate_conflict[is.na(climate_conflict$GDPpp_WB) & climate_conflict$years <= 2002,]) #alot
+table(climate_conflict$countryname[is.na(climate_conflict$GDPpp_WB) & climate_conflict$years <= 2002]) #djibouti & somalia for all years
+
+
 plot(climate_conflict$GDP_WB, climate_conflict$GDPpp_WB)
 
 #GDP from PENN
@@ -664,18 +673,48 @@ plot(climate_conflict$GDP_WB, climate_conflict$GDPpp_WB)
 #using pwt 6.2
 data("pwt6.2")
 
-pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, GDP_pwt6.2 = cgdp) %>% mutate_if(is.factor, as.character)
-pwt6.2$years <- as.character(pwt6.2$years)
+pwt6.2$isocode <- as.character(pwt6.2$isocode)
+pwt6.2$year <- as.character(pwt6.2$year)
+pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
+pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, GDP_pwt6.2 = cgdp)
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
+
+table(is.na(climate_conflict$GDP_pwt6.2))#131 missing values
+
+
+view(climate_conflict[is.na(climate_conflict$GDP_pwt6.2) & climate_conflict$years <= 2002,]) #AGO
+
+#pwt 9.1
+data("pwt9.1")
+view(pwt9.1)
+pwt9.1$isocode <- as.character(pwt9.1$isocode)
+pwt9.1$year <- as.character(pwt9.1$year)
+
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+#defining GDP as real GDP at constant national prices
+pwt9.1 <- pwt9.1 %>% filter(year>= 1981, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9.1 = rgdpna, pop_pwt9.1 = pop)
+
+pwt9.1 <- pwt9.1 %>% mutate(GDPpc_pwt9.1 = GDP_pwt9.1/pop_pwt9.1) #GDP per capita (PPP) in 2011$
+
+pwt9.1 <- pwt9.1 %>% select(iso3, years, GDPpc_pwt9.1)
+
+climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
+
+table(is.na(climate_conflict$GDPpc_pwt9.1)) #26 missing values
+
+view(climate_conflict[is.na(climate_conflict$GDPpc_pwt9.1),]) #SOM
+
+
 
 ##relation between them ?
 
 summary(lm(GDP_pwt6.2 ~ GDPpp_WB, data = climate_conflict))
 plot(climate_conflict$GDPpp_WB, climate_conflict$GDP_pwt6.2)
 
-table(is.na(climate_conflict$GDPpp_WB))#405 missing values
-table(is.na(climate_conflict$GDP_WB))# 58 missing values
-table(is.na(climate_conflict$GDP_pwt6.2))#43 missing values
+plot(climate_conflict$GDP_pwt6.2, climate_conflict$GDPpc_pwt9.1)
+table(is.na(climate_conflict$GDPpp_WB))#413 missing values
+table(is.na(climate_conflict$GDP_WB))# 52 missing values
+
 
 ##Polity IV data 
 
@@ -746,7 +785,7 @@ climate_conflict_original <- read.dta("./climate_conflict_replication_(original)
 
 climate_conflict_original <- climate_conflict_original %>% filter(year_actual %in% years1)
 
-uniqueN(climate_conflict_original$year_actual) #22 unique
+uniqueN(climate_conflict_original$year_actual) #26 unique
 uniqueN(climate_conflict_original$countryisocode) #41 unique
 
 # --> why only 889 obs? 
@@ -755,12 +794,12 @@ climate_conflict_original <- climate_conflict_original %>% rename("years" = "yea
 climate_conflict_original$years <- as.character(climate_conflict_original$years)
 anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years"))
 
-#rename ZAR to COD, then only 13 obs. missing in original replication file (why?)
+#rename ZAR to COD
 
 climate_conflict_original$iso3[climate_conflict_original$iso3 == "ZAR"] <- "COD" 
 
-anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years")) #better , only namibia and 3 years of angola missing
-#not sure why the namibia and angola values are missing
+anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years")) #better , only namibia and 6 years of angola missing
+#not sure why these namibia and angola values are missing tho...
 
 
 ##join tables (and leave out the country-year observations missing in burke datafile)
@@ -782,7 +821,8 @@ clim_conf_compare <- clim_conf_compare %>% mutate(tmp_diff = temp_all - tmp,
 clim_diff_table <- clim_conf_compare %>% select(years, iso3, countryname, temp_all,
                                                 prec_all, tmp, pre, tmp_diff, pre_diff)
 
-table(is.na(clim_diff_table)) # all obs. fully defined
+table(is.na(clim_diff_table)) #640 values missing .. but that's because I have climate data for after 2002
+table(is.na(clim_diff_table[clim_diff_table$years <= 2002,])) #0 values missing
 
 view(clim_diff_table) ##alright , these _diff columns don't look very zero-i
 
@@ -791,7 +831,7 @@ view(clim_diff_table) ##alright , these _diff columns don't look very zero-i
 plot(clim_diff_table$temp_all, clim_diff_table$tmp)
 plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff)
 summary(lm(tmp_diff ~ temp_all, clim_diff_table))
-#this is not good, the temperature value is statistically significant
+#this is not good, the tmp value is statistically significant
 #correlated with the temperaturedifference between our models
 
 plot(clim_diff_table$prec_all, clim_diff_table$pre)
@@ -809,26 +849,34 @@ plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff_dev)
 summary(lm(tmp_diff_dev ~ temp_all, clim_diff_table))
 #the effect is still statistically significant, but very marginal 
 
-plot(clim_diff_table$prec_all, clim_diff_table$pre_diff_dev)
+plot(clim_diff_table$prec_all, clim_diff_table$pre_diff_dev) # especially low precipitation side we do have a lot of variation
 summary(lm(pre_diff_dev ~ prec_all, clim_diff_table))
 #for effect : same 
 #but: there is a non-marginal intercept which is statistically significant!!
-#which means, my values for precipitations are systematically lower (0.185% on mean) compared to burke data
+#which means, my values for precipitations are systematically lower (0.012% on mean) compared to original data
 
 #in total , we expect similar results for the regression , 
-#but lower influence of precipitation on conflict incidence (assuming the positive relationship)
+
+## polity difference
+
+view(clim_conf_compare)
+
+clim_conf_compare <- clim_conf_compare %>% mutate(polity_diff = case_when(polity2.x == polity2.y ~ 0, TRUE ~ 1))
+
+table(clim_conf_compare$polity_diff) #68 different values
+
+polity_diff <- clim_conf_compare %>% select(iso3, years, country, polity2.x, polity2.y, polity_diff)
+
+polity_diff <- polity_diff %>% mutate(polity_diff_abs = polity2.x- polity2.y)
+table(polity_diff$polity_diff_abs)
+
+# I use another version of the data (unfortunately the authors do not state which one they use)
+# the difference however is not too big, with only 9 out of the 1049 (0.0086%) observations having a 
+# difference in my and original polity score bigger than one
+
 
 
 ###let's do some first regressions.
-
-model1 <- lm(conflict ~ tmp + pre + factor(years) + factor(iso3), data = climate_conflict)
-view(climate_conflict)
-
-summary(model1)
-summary(model1, robust = T)
-summary(model1, cluster = c("ccode"))
-summary(model1, robust = T, cluster = c("ccode"))
-## looks pretty different...
 
 ##reproduction original files 
 
@@ -868,12 +916,32 @@ blablame <- summary(modelme)
 modelme1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
               data = climate_conflict)
 summary(modelme1)
+
+modelme2 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+               data = climate_conflict)
+summary(modelme2)
 #my results are a bit higher than original ones, again
 
 plot(modelme1)
 stargazer(model2, model3, modelme1)
-summary(model2, model3)
+
 
 blabla2$coefficients[ 1:3,]
 blabla3$coefficients[ 1:3,]
 blablame$coefficients[1:3,]
+
+view(climate_conflict)
+
+##comparison GDP 
+
+
+view(clim_conf_compare)
+
+gdpcompare <- clim_conf_compare %>% select(iso3, years,GDP_pwt6.2, GDPpc_pwt9.1, gdp, GDP_WB, GDPpp_WB)
+view(gdpcompare)
+
+plot(gdpcompare$GDP_pwt6.2, gdpcompare$GDPpc_pwt9.1)
+
+plot(gdpcompare$GDP_pwt6.2, gdpcompare$gdp)
+plot(gdpcompare$GDPpc_pwt9.1, gdpcompare$gdp)
+summary(lm(gdp ~ GDP_pwt6.2, data = gdpcompare))
