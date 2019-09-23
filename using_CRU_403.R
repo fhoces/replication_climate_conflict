@@ -19,7 +19,7 @@ package_load <- function(x) {
 }
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies",
-              "wbstats", "pwt", "data.table", "foreign", "plm")
+              "wbstats", "pwt", "data.table", "foreign", "plm", "stargazer", "R.utils")
 
 package_load(packages)
 
@@ -27,14 +27,24 @@ package_load(packages)
 
 #set path and file name
 
+ncurl <- "https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.03/cruts.1905011326.v4.03/tmp/cru_ts4.03.1901.2018.tmp.dat.nc.gz"
 ncpath <- "C:/R/bachelorproject/data/cru_data/"
 ncname <- "cru_ts4.03.1901.2018.tmp.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "tmp"
 
+if(!file.exists(ncfname)){
+  temp_nc <- fs::file_temp(ext = ".nc.gz")
+  download.file(ncurl, destfile = temp_nc, mode = "wb")
+  suppressMessages(library(R.utils))
+  
+  gunzip(filename = temp_nc, destname = ncfname)
+  
+}
+
 #open netCDF file
 
-cru_all <- nc_open(ncfname)
+cru_all <- ncdf4::nc_open(ncfname)
 cru_all
 
 #get lon + lat
@@ -141,6 +151,22 @@ rm(tmp_all_df)
 #UNFORTUNATELY AUTHORS DIDN'T DEFINE, WHICH SOURCE THEY ARE USING.
 
 #import on country level
+shpurl <- "https://biogeo.ucdavis.edu/data/gadm3.6/gadm36_levels_shp.zip"
+shppath <- "./data/gadm/"
+shpname <- "gadm36_0"
+shpfname <- paste(shppath, shpname, ".shp", sep = "")
+
+if(!file.exists(shpfname)) {
+  
+  temp_shp <- fs::file_temp(ext = ".shp")
+  download.file(shpurl, destfile = temp_shp)
+  unzip(zipfile = temp_shp, exdir = shppath)
+
+  
+}
+
+del <- grep(list.files(shppath, full.names = T), pattern = shpname, invert = T, value = T)
+file.remove(del)
 
 gadmshape0 <- readOGR(dsn = "./data/gadm/gadm36_0.shp", layer = "gadm36_0")
 class(gadmshape0)
@@ -283,10 +309,21 @@ write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
 
 ##importing precipitation
 
+
+ncurl <- "https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.03/cruts.1905011326.v4.03/pre/cru_ts4.03.1901.2018.pre.dat.nc.gz"
 ncpath <- "C:/R/bachelorproject/data/cru_data/"
 ncname <- "cru_ts4.03.1901.2018.pre.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "pre"
+
+if(!file.exists(ncfname)){
+  temp_nc <- fs::file_temp(ext = ".nc.gz")
+  download.file(ncurl, destfile = temp_nc, mode = "wb")
+  suppressMessages(library(R.utils))
+  
+  gunzip(filename = temp_nc, destname = ncfname)
+  
+}
 
 #open netCDF file
 
@@ -427,7 +464,17 @@ write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
 ### import conflict data
 
-conflict <- read_xls("./data/conflict/MainConflictTable.xls")
+xlsurl <- "https://www.prio.org/Global/upload/CSCW/Data/UCDP/2008/MainConflictTable.xls"
+xlspath <- "./data/conflict/"
+xlsname <- "MainConflictTable.xls"
+xlsfname <- paste(xlspath, xlsname, sep = "")
+
+if(!file.exists(xlsfname)) {
+  
+  download.file(xlsurl, xlsfname, mode = "wb")
+}
+
+conflict <- read_xls(xlsfname)
 
 ## filter down to relevant data
 
@@ -597,6 +644,8 @@ view(income_vars)
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE. 
 #I download GDP per capita information from the World Bank Atlas. 
 #GDP is used by Burke as well, but in the old version of the WDI (May 2009), in 1985 USD values
+#this old data is not possible to download through wbstats package yet --> email to Jesse sent! 
+#maybe download manually and see if there is a difference 
 
 world_bank <- wb(indicator = c("NY.GDP.PCAP.CD","NY.GDP.PCAP.PP.CD"), startdate = 1981, enddate = 2006, return_wide = T)
 
@@ -632,7 +681,12 @@ table(is.na(climate_conflict$GDP_pwt6.2))#43 missing values
 
 polity_url <- "http://www.systemicpeace.org/inscr/p4v2018.xls"
 dest_polity <- "./data/polity/polityIV.xls"
-download.file(polity_url, dest_polity, mode = "wb")
+
+if(!file.exists(dest_polity)) {
+  
+  download.file(polity_url, dest_polity, mode = "wb")
+}
+
 
 polity <- read_xls(dest_polity)
 view(polity)
@@ -789,7 +843,7 @@ formula1 <- reformulate(termlabels = c("temp_all",
                         response = "war_prio_new")
 model2 <- lm(formula1, data = climate_conflict_original)
 
-summary(model2)
+blabla2 <- summary(model2)
 summary(model2, robust = T, cluster = c("ccode"))
 
 ##looking good
@@ -797,7 +851,7 @@ summary(model2, robust = T, cluster = c("ccode"))
 #version2
 climate_conflict_original$years <- as.numeric(climate_conflict_original$years) #has to be numeric for regression
 model3 <- lm(war_prio_new ~ temp_all + temp_all_lag + factor(iso3)*years,data = climate_conflict_original)
-summary(model3)
+blabla3 <- summary(model3)
 summary(model3, robust = T, cluster = c("ccode"))
 
 #same results
@@ -808,10 +862,18 @@ summary(model3, robust = T, cluster = c("ccode"))
 climate_conflict$years <- as.numeric(climate_conflict$years) #need again the numeric value for interaction term
 
 modelme <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years, data = climate_conflict)
-summary(modelme)
+blablame <- summary(modelme)
 ## results differ a bit.. tmp higher and tmp_lag much higher
 
 modelme1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
               data = climate_conflict)
 summary(modelme1)
 #my results are a bit higher than original ones, again
+
+plot(modelme1)
+stargazer(model2, model3, modelme1)
+summary(model2, model3)
+
+blabla2$coefficients[ 1:3,]
+blabla3$coefficients[ 1:3,]
+blablame$coefficients[1:3,]
