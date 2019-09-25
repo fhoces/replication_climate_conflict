@@ -23,24 +23,18 @@ packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape"
 
 package_load(packages)
 
-## importing the CRU data v4.03 (all)
+## importing the CRU data v3.10 (all year observations)
 
 #set path and file name
 
-ncurl <- "https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.03/cruts.1905011326.v4.03/tmp/cru_ts4.03.1901.2018.tmp.dat.nc.gz"
+ncurl <- "http://dap.ceda.ac.uk/thredds/fileServer/badc/cru/data/cru_ts/cru_ts_3.10/data/cru_ts_3_10_01.1901.2009.tmp.dat.gz"
 ncpath <- "C:/R/bachelorproject/data/cru_data/"
-ncname <- "cru_ts4.03.1901.2018.tmp.dat"
+ncname <- "cru_ts_3_10.1901.2009.tmp.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "tmp"
 
-if(!file.exists(ncfname)){
-  temp_nc <- fs::file_temp(ext = ".nc.gz")
-  download.file(ncurl, destfile = temp_nc, mode = "wb")
-  suppressMessages(library(R.utils))
-  
-  gunzip(filename = temp_nc, destname = ncfname)
-  
-}
+#unfortunately, the page distributing the CRU data before version 4 needs a login , so access over R is a bit more difficult
+#will add automatic download if I find the time
 
 #open netCDF file
 
@@ -120,7 +114,7 @@ rm(tmp_mat)
 
 #rename col names
 
-years <- 1901:2018
+years <- 1901:2009
 month <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 names(tmp_all_df)[1:2] <- paste(c("lon","lat"))
@@ -164,7 +158,7 @@ if(!file.exists(shpfname)) {
   temp_shp <- fs::file_temp(ext = ".shp")
   download.file(shpurl, destfile = temp_shp)
   unzip(zipfile = temp_shp, exdir = shppath)
-
+  
   
 }
 
@@ -199,12 +193,13 @@ iso3afr <- c("GNB", "GMB", "MLI", "SEN", "BEN", "MRT", "NER", "CIV", "GIN",
              "TCD", "COG", "ZAR", "UGA", "KEN", "TZA", "BDI", "RWA", 
              "SOM","DJI","ETH","AGO","MOZ","ZMB","ZWE","MWI","ZAF",
              "NAM","LSO","BWA","SWZ","MDG","SDN")
- 
+
 #is there any iso code that's defined for our african country vector but not in gadmshape?
 
 iso3afr[!iso3afr %in% gadmiso]
 
-#answer is yes: ZAR .. this is former Zaire, now congo, demoocratic republic with the iso code COD
+#answer is yes: ZAR .. this is former Zaire, now congo, demoocratic republic with the iso code COD 
+#which is same as for CRU 4.03 btw
 #redefining this single country
 
 iso3afr <- c("GNB", "GMB", "MLI", "SEN", "BEN", "MRT", "NER", "CIV", "GIN",
@@ -260,7 +255,7 @@ dim(full_tmp)
 
 #delete obs. with either no tmp-data or not defined for an african country
 
-full_tmp <- na.omit(full_tmp)
+full_tmp <- na.omit(full_tmp) 
 dim(full_tmp)
 head(full_tmp)
 
@@ -268,7 +263,7 @@ head(full_tmp)
 
 full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
 
-  
+
 ## the temperature is first averaged over the grid cells in a country, then over the month of a year
 # ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
 
@@ -308,25 +303,16 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp))
 view(country_tmp_ann)
 ### temperature finished
 
-write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
+write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann_3_10.csv")
 
 ##importing precipitation
 
 
-ncurl <- "https://crudata.uea.ac.uk/cru/data/hrg/cru_ts_4.03/cruts.1905011326.v4.03/pre/cru_ts4.03.1901.2018.pre.dat.nc.gz"
+ncurl <- "http://dap.ceda.ac.uk/thredds/fileServer/badc/cru/data/cru_ts/cru_ts_3.10/data/cru_ts_3_10_01.1901.2009.pre.dat.gz"
 ncpath <- "C:/R/bachelorproject/data/cru_data/"
-ncname <- "cru_ts4.03.1901.2018.pre.dat"
+ncname <- "cru_ts_3_10_01.1901.2009.pre.dat"
 ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "pre"
-
-if(!file.exists(ncfname)){
-  temp_nc <- fs::file_temp(ext = ".nc.gz")
-  download.file(ncurl, destfile = temp_nc, mode = "wb")
-  suppressMessages(library(R.utils))
-  
-  gunzip(filename = temp_nc, destname = ncfname)
-  
-}
 
 #open netCDF file
 
@@ -547,9 +533,9 @@ africancountries <- data.frame(iso3 = iso3afr,
                                                "Swaziland", 
                                                "Madagascar", 
                                                "Sudan"),
-                                                stringsAsFactors = FALSE) #these are from the original replication analytic data
-                                                                                                                                                    
-              
+                               stringsAsFactors = FALSE) #these are from the original replication analytic data
+
+
 #let's see which countries are in conflict table that we didn't define
 
 unique(conflict$countryname[!conflict$countryname %in% africancountries$countryname]) #are in PRIO but not in our african countryset
@@ -604,7 +590,7 @@ conflict <- conflict %>%
 conflict <- conflict %>% distinct()
 
 #make dataframes ready for merger
-  
+
 conflict <- left_join(conflict, africancountries, by = c("countryname")) #create iso3 for countries
 conflict <- conflict %>% rename("years" = "YEAR")
 conflict[,2] <- as.character(conflict[,2])
@@ -917,7 +903,7 @@ blablame <- summary(modelme)
 ## results differ a bit.. tmp higher and tmp_lag much higher
 
 modelme1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
-              data = climate_conflict)
+               data = climate_conflict)
 summary(modelme1)
 
 modelme2 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
