@@ -622,16 +622,22 @@ africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = lengt
 
 conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "years", "iso3"))
 
+
 ###import of conflict finished for now
 
 ###merge tmp, pre and conflict
 
 climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join, by = c("iso3", "years"))
 
-climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conlfict)
+climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
 
 climate_conflict <- climate_conflict %>% filter(!years == 1980) #only needed 1980 to create the lag, as stated above
 view(climate_conflict)
+
+#create conflict onset variable
+
+conflict_onset_rows <- which(climate_conflict$conflict == 1 & dplyr::lag(climate_conflict$conflict)==0)
+climate_conflict <- climate_conflict %>% mutate(conflict_onset = ifelse(row_number() %in% conflict_onset_rows, 1, 0))
 ### write csv
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
