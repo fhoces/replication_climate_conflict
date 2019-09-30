@@ -298,8 +298,9 @@ dim(country_tmp_ann)
 
 #create lag
 
-country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp))
-
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp), 
+                                              tmp_lead = dplyr::lead(tmp),
+                                              tmp_square = tmp^2)
 view(country_tmp_ann)
 ### temperature finished
 
@@ -441,15 +442,15 @@ country_pre_ann$pre <- country_pre_ann$pre/100
 
 #create lag
 
-country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre))
+country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre), 
+                                              pre_lead = dplyr::lead(pre),
+                                              pre_square = pre^2)
 
 
 #write into file
 
 write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
-
-### precipitation finished
 
 ### import conflict data
 
@@ -763,6 +764,46 @@ view(polityNA) #Namibia politic score only starts in 1990
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
+### regressions
+
+climate_conflict$years <- as.numeric(climate_conflict$years) #need the numeric value of years for interaction term
+
+#create table 1
+table1_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+                    data = climate_conflict)
+table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                    data = climate_conflict)
+table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 factor(iso3)*years,
+                    data = climate_conflict)
+
+#create table S1
+
+tableS1_model1 <- lm(conflict ~ tmp + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model2 <- lm(conflict ~ tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model3 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model4 <- lm(conflict ~ pre + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model5 <- lm(conflict ~ pre_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model6 <- lm(conflict ~ pre + pre_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model7 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS1_model8 <- lm(residuals(tableS1_model6) ~ tmp + tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+
+#create table S2
 
 ########################
 #comparison to original replication files
