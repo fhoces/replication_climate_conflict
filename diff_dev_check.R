@@ -71,25 +71,6 @@ devcheck <- climate_conflict_original %>% select(year_actual, country, temp_all,
 
 view(devcheck)
 
-#let's use a sample of one country for now
-
-devcheckmali <- devcheck %>% filter(country == "Mali")
-
-malitrend <- lm(temp_all ~ year_actual, data = devcheckmali)
-
-summary(malitrend)
-
-malitrend$coefficients
-maliintercept <- malitrend$coefficients[1]
-malislope <- malitrend$coefficients[2]
-
-malitrend <- malitrend %>% mutate ( tempexpect =maliintercept + malislope*year_actual ) # hm not worky :(
-
-plot( devcheckmali$year_actual, devcheckmali$temp_all)
-abline(lm(temp_all ~ year_actual, data = devcheckmali))
-
-#maybe I CAN do all straight away
-
 #estimate trend for tmp
 trendcoef <- devcheck %>% 
   group_by(country) %>% 
@@ -104,7 +85,7 @@ devcheck <- left_join(devcheck, trendcoef, by = "country")
 
 devcheck <- devcheck %>% group_by(country) %>% do(modelr::add_predictions(., first(.$model_lin_tmp), var = "pred_lin_tmp"))
 
-#difference between prediction and observed value (+ difference between my computation and original on)
+#difference between prediction and observed value (+ difference between my computation and original one)
 
 devcheck <- devcheck %>% mutate(tmp_lin_dev = temp_all - pred_lin_tmp,
                                 check_tmp_lin_dev = tmp_lin_dev - cru_temp_diftrend) 
@@ -139,6 +120,10 @@ ggplot(devcheck, aes(prec_all, check_pre_lin_dev)) +
 ggplot(devcheck, aes(year_actual, check_tmp_lin_dev)) +
   geom_point(aes(colour = factor(country)), size = 1) # oooh ! there it is . we definitely have the wrong model
                                                       # this is a beautiful autocorrelation graph 
+
+ggplot(devcheck, aes(country, check_tmp_lin_dev)) +
+  geom_point(aes(colour = factor(country)), size = 1)
+
 
 #let's try a log-linear trend model
 
@@ -191,5 +176,32 @@ ggplot(devcheck,  aes(year_actual, check_pre_loglin_dev)) +
 ggplot(devcheck, aes(temp_all, check_tmp_loglin_dev)) +
   geom_point(aes(colour = factor(country)), size= 1) # temperature has no influence, only countries!!
 
-                                                      
+ggplot(devcheck, aes(country, check_tmp_loglin_dev)) +
+  geom_point(aes(colour = factor(year_actual)), size = 1) # all the popsicles look similar ! 
+
+## let's try another way !!
+
+# we should be able to compare it trough another method --> creating a scatterplot from the actual observations, 
+# adding the deviation and try to see which model this could be... this makes so much more sense ! 
+
+# we try with mali first
+
+malidev <- devcheck %>% filter(country == "Mali")
+malidev <- malidev %>% mutate(originaltrend = temp_all - cru_temp_diftrend)
+
+ggplot(malidev, aes(year_actual, originaltrend)) +
+  geom_point(aes(colour = factor(country)), size = 1) + 
+  stat_smooth(method = "lm", 
+            formula = y ~ x)
+
+      # it is actually linear !!
+      #and and my simple linear regression looks exactly right ... why did I get different outcome before?
+
+#do with all of them
+
+devcheck <- devcheck %>% mutate(originaltrend = temp_all - cru_temp_diftrend) #create the linear trends
+
+ggplot(devcheck, aes(year_actual, originaltrend)) +
+  geom_point(aes(colour = factor(country)), size = 1)
+
 
