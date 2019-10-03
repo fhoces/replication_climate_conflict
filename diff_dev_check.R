@@ -118,11 +118,36 @@ ggplot(devcheck, aes(prec_all, check_pre_lin_dev)) +
   geom_point(aes(colour = factor(country)), size = 1) # same same
 
 ggplot(devcheck, aes(year_actual, check_tmp_lin_dev)) +
-  geom_point(aes(colour = factor(country)), size = 1) # oooh ! there it is . we definitely have the wrong model
-                                                      # this is a beautiful autocorrelation graph 
+  geom_point(aes(colour = factor(country)), size = 1) # beautiful autocorrelation.. what went wrong ? 
+          
+      # we see the center point at 1995.. what am I missing..
+
 
 ggplot(devcheck, aes(country, check_tmp_lin_dev)) +
   geom_point(aes(colour = factor(country)), size = 1)
+
+# we should be able to compare it through another method --> creating a scatterplot from the actual observations 
+
+# we try with mali first
+
+malidev <- devcheck %>% filter(country == "Mali")
+malidev <- malidev %>% mutate(originaltrend = temp_all - cru_temp_diftrend)
+
+ggplot(malidev, aes(y = year_actual, x1 = originaltrend, x2 = temp_all)) +
+  geom_point(aes(colour = factor(country)), size = 1) + 
+  geom_smooth(aes(x = temp_all), method = "lm", formula = x ~ y)
+
+
+# it is actually linear !!
+#and and my simple linear regression looks exactly right ... why did I get different outcome before?
+
+#do with all of them
+
+devcheck <- devcheck %>% mutate(originaltrend = temp_all - cru_temp_diftrend) #create the linear trends
+
+ggplot(devcheck, aes(year_actual, originaltrend)) +
+  geom_point(aes(colour = factor(country)), size = 1)
+
 
 
 #let's try a log-linear trend model
@@ -181,7 +206,7 @@ ggplot(devcheck, aes(country, check_tmp_loglin_dev)) +
 
 ## let's try another way !!
 
-# we should be able to compare it trough another method --> creating a scatterplot from the actual observations, 
+# we should be able to compare it through another method --> creating a scatterplot from the actual observations, 
 # adding the deviation and try to see which model this could be... this makes so much more sense ! 
 
 # we try with mali first
