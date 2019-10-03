@@ -18,7 +18,7 @@ package_load <- function(x) {
   }
 }
 
-packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "purrr", "fastDummies",
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
               "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils")
 
 package_load(packages)
