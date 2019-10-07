@@ -488,7 +488,7 @@ conflict <- read_xls(xlsfname)
 
 #delete obs. not between 1980 and 2006
 
-conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2006)
+conflict <- conflict %>% filter(YEAR >= 1980 & YEAR <=2006)
 
 conflict
 #observations in african countries
@@ -622,7 +622,6 @@ africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = lengt
 
 conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "years", "iso3"))
 
-
 ###import of conflict finished for now
 
 ###merge tmp, pre and conflict
@@ -631,17 +630,28 @@ climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
 
-climate_conflict <- climate_conflict %>% filter(!years == 1980) #only needed 1980 to create the lag, as stated above
 view(climate_conflict)
+
+
+view(climate_conflict[is.na(climate_conflict$conflict),])
 
 #create conflict onset variable
 
-conflict_onset_rows <- which(climate_conflict$conflict == 1 & dplyr::lag(climate_conflict$conflict)==0)
-climate_conflict <- climate_conflict %>% mutate(conflict_onset = ifelse(row_number() %in% conflict_onset_rows, 1, 0))
+conflict_onset_rows <- which(climate_conflict$conflict == 1 & dplyr::lag(climate_conflict$conflict)==0 & dplyr::lag(climate_conflict$countryname) == climate_conflict$countryname) #creates rowIDs where conflict onsets
+climate_conflict$conflict_onset <- 0
+climate_conflict[conflict_onset_rows,]$conflict_onset <- 1 
+
+#ANALYITAL CHOICE OF TYPE : VARIABLE DEFINITION. FIRST RECORDED HERE.
+# we define onset variable "as missing if there was an ongoing civil war that began in an earlier year" (cited by manual)
+
+climate_conflict$conflict_onset[climate_conflict$conflict == 1 & climate_conflict$conflict_onset == 0] <- NA
+
+
+climate_conflict <- climate_conflict %>% filter(!years == 1980) #only needed 1980 to create the lag, as stated above
+
 ### write csv
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
-
 
 ###download control data
 
