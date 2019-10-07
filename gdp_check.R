@@ -6,6 +6,7 @@ library(foreign)
 library(tidyverse)
 library(pwt)
 library(ggplot2)
+library(wbstats)
 
 setwd("C:/R/bachelorproject")
 
@@ -43,7 +44,7 @@ pwt6.2$country[pwt6.2$country == "Congo, Democratic Republic"] <- "Congo, Dem. R
 
 #recalculate to per capita values in pwt dataframe
 
-pwt6.2 <- pwt6.2 %>% mutate_at(vars(-pop, -country, -year, -ppp), `/`, quote(pop))
+  #pwt6.2 <- pwt6.2 %>% mutate_at(vars(-pop, -country, -year, -ppp), `/`, quote(pop))
 
 #add ppp
 
@@ -58,6 +59,11 @@ gdp_check <- left_join(gdp_check, pwt6.2, by = c("country", "year_actual" = "yea
 
 view(gdp_check)
 
+gdp_check[rowSums(is.na(gdp_check)) > 0 & gdp_check$year_actual <= 2002,]
+
+# we have missing values recorded for libera , djibouti, angoola and lesotho in original data set
+# but only for angola it is missing in pwt6.2.. why didn't authors use this data ? 
+
 #plot
 
 ggplot(gdp_check, aes(gdp, cgdp)) +
@@ -69,24 +75,72 @@ ggplot(gdp_check, aes(gdp, rgdpl)) +
 ggplot(gdp_check, aes(gdp, rgdptt)) + 
   geom_point(aes(colour = factor(country)))
 
-#cgdp is pretty straight .. but still...
+#rgdptt looks perfect...
 
-#regress with cgdp
+#regress with rgdptt
 
-summary(lm(gdp ~ cgdp + factor(country), data = gdp_check))
+summary(lm(gdp ~ rgdptt, data = gdp_check))
 
-#hm somoething is wrong here
+#it's only like in thousands.
+
+gdp_check$rgdptt <- gdp_check$rgdptt/1000
+
+rgdpttmodel <- lm(gdp ~ rgdptt, data = gdp_check)
+
+par(mfrow=c(2,2))
+
+plot(rgdpttmodel)
+
+## get deviations
+
+gdp_check <- gdp_check %>% mutate(gdp_rgdptt_diff = gdp - rgdptt,
+                                  gdp_rgdptt_dev = gdp_rgdptt_diff/gdp)
+
+ggplot(gdp_check, aes(gdp, gdp_rgdptt_dev)) + 
+  geom_point(aes(colour = factor(country)))
+
+rgdpttmodel2 <- lm(gdp ~ rgdptt + factor(country), data = gdp_check)
+
+summary(rgdpttmodel2) #the countries make all the difference
+
+ggplot(gdp_check, aes(year_actual, gdp_rgdptt_dev)) + 
+  geom_point(aes(colour = factor(country)))
+
+ # it also seems very randomly distributed across the years
+
+
+rgdpttmodel3 <- lm(gdp ~ rgdptt + year_actual, data = gdp_check)
+
+summary(rgdpttmodel3)
+
+t.test(gdp_check$gdp_rgdptt_dev)
+
+#bottom line: my computation is not the same , but super similar..
+#and the deviation is not significantly different from zero, using one sample t test.
+
+#why is it different ?
+# actually, it should be more different as pwt6.2 gives out values in 2000 USD instead of authors stated 1985 USD.
 
 
 ## for WDI : downloaded manually because of non-functionality (for now) of wbstats package for WDI archive
 
-wb_data <- read_csv("./data/gdp/wb/b0b84a41-4c82-4035-b645-baff91d87dc8_Data.csv")
+wb_data <- read_csv("./data/gdp/wb/fae6d9d1-0c96-48c1-ab19-4150554b0811_Data.csv")
 
 colnames(wb_data)
 
+table(wb_data$`GDP per capita, PPP (constant 1987 international $) [NY.GDP.PCAP.PP.KD.87]`) # no values
+table(wb_data$`GDP per capita, PPP (current international $) [NY.GDP.PCAP.PP.CD]`) #better
+table(wb_data$`GDP per capita (current US$) [NY.GDP.PCAP.CD]`) #better
+table(wb_data$`Population, total [SP.POP.TOTL]`) #better
+
+
 wb_data <- wb_data %>% select(country = `Country Name`, 
                               year = Time, 
-                              gdp_wb = `GDP, PPP (constant 1987 international $) [NY.GDP.MKTP.PP.KD.87]` )
+                              gdp_wb_1 = `GDP per capita, PPP (current international $) [NY.GDP.PCAP.PP.CD]`,
+                              gdp_wb_2 = `GDP per capita (current US$) [NY.GDP.PCAP.CD]`)
+
+wb_data$gdp_wb_1[wb_data$gdp_wb_1 == ".."] <- NA
+wb_data$gdp_wb_2[wb_data$gdp_wb_2 == ".."] <- NA
 
 unique(gdp_check$country[!gdp_check$country %in% wb_data$country]) # "Congo, Republic of" 
 
@@ -94,4 +148,10 @@ unique(pwt6.2$country[!pwt6.2$country %in% gdp_check$country])
 
 gdp_check$country[gdp_check$country == "Congo, Republic of"] <- "Congo"
 
-gdp_check <- gdp_check %>% left_join(gdp_check, wb_data, by = c("country", )
+gdp_check <- gdp_check %>% left_join(wb_data, by = c("country", "year_actual" = "year" ))
+
+ggplot(gdp_check, aes(gdp, gdp_wb_2)) +
+  geom_point(aes(colour = factor(country)))
+
+## this looks baad...^^
+
