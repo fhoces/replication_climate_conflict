@@ -1,3 +1,5 @@
+### master file - replicating the results of the paper "Warming increases the risk of civil war in Africa" , using an updated climate dataset version
+
 ##set up
 
 rm(list = ls())
@@ -11,8 +13,7 @@ package_load <- function(x) {
     if ( ! require (i, character.only = TRUE)) {
       # IF package was not able to be loaded ten re-install
       install.packages(i, dependencies = T)
-      # Load package after installing
-      require( i, character.only = T)
+
     }
     
   }
@@ -128,12 +129,12 @@ names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, t
 
 str(tmp_all_df)
 
-#drop irrelevant columns , leaving only 1980-2002
+#drop irrelevant columns , leaving only 1979 - 2002
 #ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
-#I include year 1980 so I have the climate lag for 1981. 
+#I include years 1979 - 1980 to compute climate lags and climate_diff lags. 
 #From the original data, I can not see how they computed the lag variable for 1981, but I assume this is how they did it , too.
 
-years1 <- 1980:2006
+years1 <- 1979:2006
 
 removecols1 <- c("lon","lat")
 removecols2 <- paste(rep(years1, each=12), rep(month, times= length(years1)))
@@ -142,7 +143,7 @@ head(removecols,13)
 tail(removecols,13)
 head(tmp_all_df)
 
-tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1980-2002
+tmp_red_df <- tmp_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1979-2002
 head(tmp_red_df)
 head(na.omit(tmp_red_df))
 
@@ -307,14 +308,17 @@ table(country_tmp_ann$iso3)
 
 country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp), 
                                               tmp_lead = dplyr::lead(tmp),
-                                              tmp_square = tmp^2)
+                                              tmp_square = tmp^2,
+                                              tmp_lag_square = tmp_lag^2)
 # calculate diff and dev
 
 # ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
 # we define climate difference in year t as difference between climate in year t and year t-1
 # this is assumed to be the meassure, even tho controlling in the original replication file doesn't confirm this 100%, maybe due to rouding error
 
-country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag)
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
+                                              tmp_diff_lag = dplyr::lag(tmp_diff),)
+
 
 
 view(country_tmp_ann)
@@ -385,9 +389,9 @@ names(pre_all_df)[3:ncol(pre_all_df)] <- paste(rep(years, each=12), rep(month, t
 
 str(pre_all_df)
 
-#drop irrelevant columns , leaving only 1981-2002
+#drop irrelevant columns , leaving only 1979-2002
 
-pre_red_df <- pre_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1980-2002
+pre_red_df <- pre_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1979-2002
 head(tmp_red_df)
 head(na.omit(tmp_red_df))
 
@@ -469,12 +473,14 @@ country_pre_ann$pre <- country_pre_ann$pre/100
 
 country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre), 
                                               pre_lead = dplyr::lead(pre),
-                                              pre_square = pre^2)
+                                              pre_square = pre^2,
+                                              pre_lag_square = pre_lag^2)
 
 #create diff and dev from trend
 # ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 313. 
 
-country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag)
+country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
+                                              pre_diff_lag = dplyr::lag(pre_diff))
 
 
 view(country_pre_ann)
@@ -502,9 +508,9 @@ conflict <- read_xls(xlsfname)
 
 ## filter down to relevant data
 
-#delete obs. not between 1980 and 2006
+#delete obs. not between 1981 and 2006
 
-conflict <- conflict %>% filter(YEAR >= 1980 & YEAR <=2006)
+conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2006)
 
 conflict
 #observations in african countries
@@ -663,7 +669,7 @@ climate_conflict[conflict_onset_rows,]$conflict_onset <- 1
 climate_conflict$conflict_onset[climate_conflict$conflict == 1 & climate_conflict$conflict_onset == 0] <- NA
 
 
-climate_conflict <- climate_conflict %>% filter(!years == 1980) #only needed 1980 to create the lag, as stated above
+climate_conflict <- climate_conflict %>% filter(!years == 1979:1980) #only needed 1979 and 1980 to create the lag, as stated above
 
 ### write csv
 
@@ -743,13 +749,20 @@ table(climate_conflict$countryname) #ethiopia has 23 obs. instead of 22
 #the authors decided to use the obs. with the value 0 (for unclear reason, but they were probably indifferent in their choice)
 #ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
 
-climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2 == 0),]
+climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2 == 1),]
 
 
 
 table(is.na(climate_conflict$polity2)) #9 missing values
 polityNA <- climate_conflict[is.na(climate_conflict$polity2),]
 view(polityNA) #Namibia politic score only starts in 1990
+
+## delete country-year observations that are missing in original replication files
+## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. FIRST RECORDED HERE.
+# I do not see the reason behind removing these country-year observation, which is why I will include them in a robustness test later on.
+
+climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Angola" & climate_conflict$years %in% 2000:2006),]
+climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Namibia" & climate_conflict$years %in% 1981:1990),]
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
@@ -797,5 +810,57 @@ tableS1_model8 <- lm(residuals(tableS1_model6) ~ tmp + tmp_lag + factor(iso3)*ye
 
 #create table S2
 
+tableS2_model1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                     data = climate_conflict)
 
+tableS2_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3) + years,
+                     data = climate_conflict)
 
+tableS2_model3 <- lm(conflict ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3)*years, 
+                     data = climate_conflict)
+
+tableS2_model4 <- lm(conflict ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3) + years,
+                     data = climate_conflict)
+
+#create table S4
+
+tableS4_model1 <- lm(conflict_onset ~ tmp + tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+tableS4_model2 <- lm(conflict_onset ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                     data = climate_conflict)
+tableS4_model3 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + factor(iso3)*years,
+                     data = climate_conflict)
+tableS4_model4 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+#create table S5 
+
+tableS5_model1 <- lm(conflict ~ tmp + tmp_lag + tmp_lead + factor(iso3)*years,
+                     data = climate_conflict)
+tableS5_model2 <- lm(conflict ~ tmp + tmp_lag + tmp_lead + pre + pre_lag + pre_lead + factor(iso3)*years,
+                     data = climate_conflict)
+
+#create table S6
+
+tableS6_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS6_model2 <- lm(conflict ~ tmp + tmp_lag + gdp + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS6_model3 <- lm(conflict ~ tmp + tmp_lag + polity2 + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS6_model4 <- lm(conflict ~ tmp + tmp_lag + gdp + polity2 + factor(iso3)*years,
+                     data = climate_conflict)
+
+#create table S8
+
+tableS8_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+                     data = climate_conflict)
+tableS8_model2 <- lm(conflict ~ tmp + tmp_square + tmp_lag + tmp_lag_square + factor(iso3)*years,
+                     data = climate_conflict)
+tableS8_model3 <- lm(conflict ~ tmp + tmp_square + factor(iso3)*years,
+                     data = climate_conflict)
+tableS8_model4 <- lm(conflict ~ tmp + tmp_square + tmp_lag + tmp_lag_square + pre + pre_square + pre_lag + pre_lag_square + factor(iso3)*years,
+                     data = climate_conflict)
