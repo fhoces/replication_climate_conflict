@@ -300,12 +300,21 @@ dim(country_tmp)
 country_tmp_ann <- country_tmp %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(tmp=mean(tmp))
 
 dim(country_tmp_ann)
+table(country_tmp_ann$years)
+table(country_tmp_ann$iso3)
 
-#create lag, lead and quadratic term
+# create lag, lead and quadratic term
 
 country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp), 
                                               tmp_lead = dplyr::lead(tmp),
                                               tmp_square = tmp^2)
+# calculate diff and dev
+
+# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+# we define climate difference in year t as difference between climate in year t and year t-1
+# this is assumed to be the meassure, even tho controlling in the original replication file doesn't confirm this 100%, maybe due to rouding error
+
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag)
 
 
 view(country_tmp_ann)
@@ -462,6 +471,13 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre),
                                               pre_lead = dplyr::lead(pre),
                                               pre_square = pre^2)
 
+#create diff and dev from trend
+# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 313. 
+
+country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag)
+
+
+view(country_pre_ann)
 
 #write into file
 
@@ -660,98 +676,38 @@ write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 ##as only one GDP meassure is used for the regression, it is very unclear to me,
 ##how the used GDP per capita has been derived.
 
-#GDP from world bank
-str(wb_cachelist, max.level = 1)
-
-income_vars <- wbsearch(pattern = "gross domestic")
-view(income_vars)
-
-#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE. 
-#I download GDP per capita information from the World Bank Atlas. 
-#GDP is used by Burke as well, but in the old version of the WDI (May 2009), in 1985 USD values
-#this old data is not possible to download through wbstats package yet --> email to Jesse sent! 
-#maybe download manually and see if there is a difference 
-
-world_bank <- wb(indicator = c("NY.GDP.PCAP.CD","NY.GDP.PCAP.PP.CD"), startdate = 1981, enddate = 2006, return_wide = T)
-
-world_bank_GDPpc_currentUSD <- as.data.frame(world_bank %>% select(iso3 = iso3c, years = date, GDP_WB = NY.GDP.PCAP.CD))
-
-world_bank_GDPpcPPP <- as.data.frame(world_bank %>% select(iso3 = iso3c, years = date, GDPpp_WB = NY.GDP.PCAP.PP.CD))
-
-climate_conflict <- left_join(climate_conflict, world_bank_GDPpc_currentUSD, by = c("iso3", "years"))
-climate_conflict <- left_join(climate_conflict, world_bank_GDPpcPPP, by = c("iso3", "years"))
-view(climate_conflict)
-
-view(climate_conflict[is.na(climate_conflict$GDP_WB) & climate_conflict$years <= 2002,]) #different ones
-view(climate_conflict[is.na(climate_conflict$GDPpp_WB) & climate_conflict$years <= 2002,]) #alot
-table(climate_conflict$countryname[is.na(climate_conflict$GDPpp_WB) & climate_conflict$years <= 2002]) #djibouti & somalia for all years
-
-
-plot(climate_conflict$GDP_WB, climate_conflict$GDPpp_WB)
-
 #GDP from PENN
 #ANALYTICAL CHOICE OF TYPE OTHERS - PROCESSING
 #using pwt 6.2
+
 data("pwt6.2")
 
 pwt6.2$isocode <- as.character(pwt6.2$isocode)
 pwt6.2$year <- as.character(pwt6.2$year)
 pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
-pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, GDP_pwt6.2 = cgdp)
+pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
 
-table(is.na(climate_conflict$GDP_pwt6.2))#131 missing values
+table(is.na(climate_conflict$gdp))#132 missing values
 
 
-view(climate_conflict[is.na(climate_conflict$GDP_pwt6.2) & climate_conflict$years <= 2002,]) #AGO
+view(climate_conflict[is.na(climate_conflict$gdp) & climate_conflict$years <= 2002,]) #Angola -> like in original dataset
 
-#pwt 9.1
-data("pwt9.1")
-view(pwt9.1)
-pwt9.1$isocode <- as.character(pwt9.1$isocode)
-pwt9.1$year <- as.character(pwt9.1$year)
+# we now assign NA to gdp in djibouti (all years) and liberia (1992 - 2002)
+# because they're  not defined in original dataset --> reason unclear !
 
-#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
-#defining GDP as real GDP at constant national prices
-pwt9.1 <- pwt9.1 %>% filter(year>= 1981, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9.1 = rgdpna, pop_pwt9.1 = pop)
-
-pwt9.1 <- pwt9.1 %>% mutate(GDPpc_pwt9.1 = GDP_pwt9.1/pop_pwt9.1) #GDP per capita (PPP) in 2011$
-
-pwt9.1 <- pwt9.1 %>% select(iso3, years, GDPpc_pwt9.1)
-
-climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
-
-table(is.na(climate_conflict$GDPpc_pwt9.1)) #26 missing values
-
-view(climate_conflict[is.na(climate_conflict$GDPpc_pwt9.1),]) #SOM
-
-
-
-##relation between them ?
-
-summary(lm(GDP_pwt6.2 ~ GDPpp_WB, data = climate_conflict))
-plot(climate_conflict$GDPpp_WB, climate_conflict$GDP_pwt6.2)
-
-plot(climate_conflict$GDP_pwt6.2, climate_conflict$GDPpc_pwt9.1)
-table(is.na(climate_conflict$GDPpp_WB))#413 missing values
-table(is.na(climate_conflict$GDP_WB))# 52 missing values
-
+climate_conflict[climate_conflict$years >= 1992 & climate_conflict$countryname == "Liberia", ]$gdp <- NA
+climate_conflict[climate_conflict$countryname == "Djibouti",]$gdp <- NA
 
 ##Polity IV data 
 
-polity_url <- "http://www.systemicpeace.org/inscr/p4v2018.xls"
-dest_polity <- "./data/polity/polityIV.xls"
-
-if(!file.exists(dest_polity)) {
-  
-  download.file(polity_url, dest_polity, mode = "wb")
-}
-
-
+politypath <- "./data/polity/"
+polityfname <- "p4v2007.xls"
+dest_polity <- paste(politypath, polityfname, sep = "") # not publicly available online, but upon request from Center for Systemic Peace
 polity <- read_xls(dest_polity)
 view(polity)
 
-##scodes are different from iso3 codes, so we have to redine them
+##scodes are different from iso3 codes, so we have to redefine them
 polity <- as.data.frame(polity) #resolves issue with warning message : unknown or uninitialised column = "country"
 polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
 uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
@@ -778,14 +734,13 @@ polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
   select(years = year, iso3, polity2)
 polityjoin$years <- as.character(polityjoin$years)
 
-climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
+climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## we have one more obs. now .. what happened there?
 table(climate_conflict$countryname) #ethiopia has 23 obs. instead of 22
 
 #looking that up in the polityIV table shows they apparently changed the countrycode in 1993 and have two observations for that year
 #quick wikipedia search shows they got a new constitution in 1994, probably has something to do with that
 #it's behind my scope to decide which one is better.. but it changed only marginaly from 0 to 1 
-#i would drop one randomly , but not so good for reproducability and transparency reasons
-#so I will just drop the worse one (with polity2 score being 0) (the effect of this on the analysis will be assumed to be close to not existent)
+#the authors decided to use the obs. with the value 0 (for unclear reason, but they were probably indifferent in their choice)
 #ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
 
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2 == 0),]
@@ -798,6 +753,9 @@ view(polityNA) #Namibia politic score only starts in 1990
 
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
+## check completeness óf data
+
+view(climate_conflict[rowSums(is.na(climate_conflict)) >0 & climate_conflict$years <= 2002, ])
 ### regressions
 
 climate_conflict$years <- as.numeric(climate_conflict$years) #need the numeric value of years for interaction term
@@ -807,7 +765,7 @@ table1_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
                     data = climate_conflict)
 table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
                     data = climate_conflict)
-table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 factor(iso3)*years,
+table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 +factor(iso3)*years,
                     data = climate_conflict)
 
 #create table S1
@@ -839,173 +797,5 @@ tableS1_model8 <- lm(residuals(tableS1_model6) ~ tmp + tmp_lag + factor(iso3)*ye
 
 #create table S2
 
-########################
-#comparison to original replication files
-
-climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
-
-write_csv(climate_conflict_original, "./csv_files/original_dta_file.csv") #save it for data viewing in officecalc
-
-table(is.na(climate_conflict_original$war_onset_new))
-climate_conflict_original <- climate_conflict_original %>% filter(year_actual %in% years1)
-
-uniqueN(climate_conflict_original$year_actual) #26 unique
-uniqueN(climate_conflict_original$countryisocode) #41 unique
-
-# --> why only 889 obs? 
-
-climate_conflict_original <- climate_conflict_original %>% rename("years" = "year_actual", "iso3" = "countryisocode")
-climate_conflict_original$years <- as.character(climate_conflict_original$years)
-anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years"))
-
-#rename ZAR to COD
-
-climate_conflict_original$iso3[climate_conflict_original$iso3 == "ZAR"] <- "COD" 
-
-anti_join(climate_conflict, climate_conflict_original, by = c("iso3", "years")) #better , only namibia and 6 years of angola missing
-#not sure why these namibia and angola values are missing tho...
 
 
-##join tables (and leave out the country-year observations missing in burke datafile)
-
-clim_conf_compare <- left_join(climate_conflict_original, climate_conflict, by = c("years", "iso3"))
-
-##compare conflict, tmp and pre 
-
-#conflict
-clim_conf_compare <- clim_conf_compare %>% mutate(conflict_diff = case_when(war_prio_new == conflict ~ 0, TRUE ~ 1))
-
-table(clim_conf_compare$conflict_diff) # all equal 
-
-#tmp 
-
-clim_conf_compare <- clim_conf_compare %>% mutate(tmp_diff = temp_all - tmp,
-                                                  pre_diff = prec_all - pre)
-
-clim_diff_table <- clim_conf_compare %>% select(years, iso3, countryname, temp_all,
-                                                prec_all, tmp, pre, tmp_diff, pre_diff)
-
-table(is.na(clim_diff_table)) #640 values missing .. but that's because I have climate data for after 2002
-table(is.na(clim_diff_table[clim_diff_table$years <= 2002,])) #0 values missing
-
-view(clim_diff_table) ##alright , these _diff columns don't look very zero-i
-
-#relation?
-
-plot(clim_diff_table$temp_all, clim_diff_table$tmp)
-plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff)
-summary(lm(tmp_diff ~ temp_all, clim_diff_table))
-#this is not good, the tmp value is statistically significant
-#correlated with the temperaturedifference between our models
-
-plot(clim_diff_table$prec_all, clim_diff_table$pre)
-plot(clim_diff_table$prec_all, clim_diff_table$pre_diff)
-summary(lm(pre_diff ~ prec_all, clim_diff_table))
-#same for precipitation
-
-##well, it does make sense actually for higher values to have 
-##bigger difference : dev. from absolut value would make a much better comparison
-
-clim_diff_table <- clim_diff_table %>% mutate(tmp_diff_dev = tmp_diff/temp_all,
-                                              pre_diff_dev = pre_diff/prec_all)
-
-plot(clim_diff_table$temp_all, clim_diff_table$tmp_diff_dev)
-summary(lm(tmp_diff_dev ~ temp_all, clim_diff_table))
-#the effect is still statistically significant, but very marginal 
-
-plot(clim_diff_table$prec_all, clim_diff_table$pre_diff_dev) # especially low precipitation side we do have a lot of variation
-summary(lm(pre_diff_dev ~ prec_all, clim_diff_table))
-#for effect : same 
-#but: there is a non-marginal intercept which is statistically significant!!
-#which means, my values for precipitations are systematically lower (0.012% on mean) compared to original data
-
-#in total , we expect similar results for the regression , 
-
-## polity difference
-
-view(clim_conf_compare)
-
-clim_conf_compare <- clim_conf_compare %>% mutate(polity_diff = case_when(polity2.x == polity2.y ~ 0, TRUE ~ 1))
-
-table(clim_conf_compare$polity_diff) #68 different values
-
-polity_diff <- clim_conf_compare %>% select(iso3, years, country, polity2.x, polity2.y, polity_diff)
-
-polity_diff <- polity_diff %>% mutate(polity_diff_abs = polity2.x- polity2.y)
-table(polity_diff$polity_diff_abs)
-
-# I use another version of the data (unfortunately the authors do not state which one they use)
-# the difference however is not too big, with only 9 out of the 1049 (0.0086%) observations having a 
-# difference in my and original polity score bigger than one
-
-
-
-###let's do some first regressions.
-
-##reproduction original files 
-
-#version1
-countrytimetrends <- grep("^Iccyear", names(climate_conflict_original), value = T) 
-countryfe <- grep("^iccode", names(climate_conflict_original), value = T)
-formula1 <- reformulate(termlabels = c("temp_all",
-                                       "temp_all_lag",
-                                       countrytimetrends,
-                                       countryfe),
-                        
-                        response = "war_prio_new")
-model2 <- lm(formula1, data = climate_conflict_original)
-
-blabla2 <- summary(model2)
-summary(model2, robust = T, cluster = c("ccode"))
-
-##looking good
-
-#version2
-climate_conflict_original$years <- as.numeric(climate_conflict_original$years) #has to be numeric for regression
-model3 <- lm(war_prio_new ~ temp_all + temp_all_lag + factor(iso3)*years,data = climate_conflict_original)
-blabla3 <- summary(model3)
-summary(model3, robust = T, cluster = c("ccode"))
-
-#same results
-
-
-##use our data
-
-climate_conflict$years <- as.numeric(climate_conflict$years) #need again the numeric value for interaction term
-
-modelme <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years, data = climate_conflict)
-blablame <- summary(modelme)
-## results differ a bit.. tmp higher and tmp_lag much higher
-
-modelme1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
-              data = climate_conflict)
-summary(modelme1)
-
-modelme2 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
-               data = climate_conflict)
-summary(modelme2)
-#my results are a bit higher than original ones, again
-
-plot(modelme1)
-stargazer(model2, model3, modelme1)
-
-
-blabla2$coefficients[ 1:3,]
-blabla3$coefficients[ 1:3,]
-blablame$coefficients[1:3,]
-
-view(climate_conflict)
-
-##comparison GDP 
-
-
-view(clim_conf_compare)
-
-gdpcompare <- clim_conf_compare %>% select(iso3, years,GDP_pwt6.2, GDPpc_pwt9.1, gdp, GDP_WB, GDPpp_WB)
-view(gdpcompare)
-
-plot(gdpcompare$GDP_pwt6.2, gdpcompare$GDPpc_pwt9.1)
-
-plot(gdpcompare$GDP_pwt6.2, gdpcompare$gdp)
-plot(gdpcompare$GDPpc_pwt9.1, gdpcompare$gdp)
-summary(lm(gdp ~ GDP_pwt6.2, data = gdpcompare))
