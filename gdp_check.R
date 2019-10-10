@@ -46,11 +46,6 @@ pwt6.2$country[pwt6.2$country == "Congo, Democratic Republic"] <- "Congo, Dem. R
 
   #pwt6.2 <- pwt6.2 %>% mutate_at(vars(-pop, -country, -year, -ppp), `/`, quote(pop))
 
-#add ppp
-
- # pwt6.2 <- pwt6.2 %>% mutate_at(vars(-pop, -country, -year, -ppp), `*`, quote(ppp)) 
- # I leave this out as it seems very counterproductive when plotting the data
-
 #join
 
 pwt6.2$country <- as.character(pwt6.2$country)
@@ -91,6 +86,9 @@ par(mfrow=c(2,2))
 
 plot(rgdpttmodel)
 
+summary(rgdpttmodel)
+
+plot(rgdpttmodel)
 ## get deviations
 
 gdp_check <- gdp_check %>% mutate(gdp_rgdptt_diff = gdp - rgdptt,
@@ -154,4 +152,3 @@ ggplot(gdp_check, aes(gdp, gdp_wb_2)) +
   geom_point(aes(colour = factor(country)))
 
 ## this looks baad...^^
-
