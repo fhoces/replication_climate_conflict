@@ -14,7 +14,7 @@ climate_conflict_original <- read.dta("./climate_conflict_replication_(original)
 
 ## looking at diff's first
 
-diffcheck <- climate_conflict_original %>% select(country, year_actual, temp_all, temp_all_lag, temp_all_dif, prec_all, prec_all_lag, prec_all_dif)
+diffcheck <- climate_conflict_original %>% dplyr::select(country, year_actual, temp_all, temp_all_lag, temp_all_dif, prec_all, prec_all_lag, prec_all_dif)
 
 view(diffcheck)
 
@@ -67,7 +67,7 @@ ggplot(diffcheck, aes(year_actual, check_pre_diff)) +
       # how is this trend computed .. linear, moving average ...?
 
 
-devcheck <- climate_conflict_original %>% select(year_actual, country, temp_all, cru_temp_diftrend, prec_all, cru_prec_diftrend)
+devcheck <- climate_conflict_original %>% dplyr::select(year_actual, country, temp_all, cru_temp_diftrend, prec_all, cru_prec_diftrend)
 
 view(devcheck)
 
@@ -126,84 +126,6 @@ ggplot(devcheck, aes(year_actual, check_tmp_lin_dev)) +
 ggplot(devcheck, aes(country, check_tmp_lin_dev)) +
   geom_point(aes(colour = factor(country)), size = 1)
 
-# we should be able to compare it through another method --> creating a scatterplot from the actual observations 
-
-# we try with mali first
-
-malidev <- devcheck %>% filter(country == "Mali")
-malidev <- malidev %>% mutate(originaltrend = temp_all - cru_temp_diftrend)
-
-ggplot(malidev, aes(y = year_actual, x1 = originaltrend, x2 = temp_all)) +
-  geom_point(aes(colour = factor(country)), size = 1) + 
-  geom_smooth(aes(x = temp_all), method = "lm", formula = x ~ y)
-
-
-# it is actually linear !!
-#and and my simple linear regression looks exactly right ... why did I get different outcome before?
-
-#do with all of them
-
-devcheck <- devcheck %>% mutate(originaltrend = temp_all - cru_temp_diftrend) #create the linear trends
-
-ggplot(devcheck, aes(year_actual, originaltrend)) +
-  geom_point(aes(colour = factor(country)), size = 1)
-
-
-
-#let's try a log-linear trend model
-
-#again : estimate trend for tmp
-trendcoef <- devcheck %>% 
-  group_by(country) %>% 
-  do(model_loglin_tmp = lm(log(temp_all) ~ year_actual, .)) %>%
-  ungroup()
-
-trendcoef
-
-#use these estimates to compute predictions for all obs.
-
-devcheck <- left_join(devcheck, trendcoef, by = "country")
-
-devcheck <- devcheck %>% group_by(country) %>% do(modelr::add_predictions(., first(.$model_loglin_tmp), var = "pred_loglin_tmp"))
-
-#difference between prediction and observed value (+ difference between my computation and original on)
-
-devcheck <- devcheck %>% mutate(tmp_loglin_dev = temp_all - pred_loglin_tmp,
-                                check_tmp_loglin_dev = tmp_loglin_dev - cru_temp_diftrend) 
-
-#do same for pre
-
-trendcoef <- devcheck %>% 
-  group_by(country) %>%
-  do(model_loglin_pre = lm(log(prec_all) ~ year_actual, .)) %>%
-  ungroup()
-
-devcheck <- left_join(devcheck, trendcoef, by = "country")
-
-devcheck <- devcheck %>% group_by(country) %>% do(modelr::add_predictions(., first(.$model_loglin_pre), var = "pred_loglin_pre"))
-
-devcheck <- devcheck %>% mutate(pre_loglin_dev = prec_all - pred_loglin_pre,
-                                check_pre_loglin_dev = pre_loglin_dev - cru_prec_diftrend)
-
-view(devcheck) #that made it worse ...
-
-ggplot(devcheck,  aes(year_actual, check_tmp_loglin_dev)) +
-  geom_point(aes(colour = factor(country)), size = 1) # no more heteroscedasticity (well, really small at least) !!
-
-  # on the bad side.. big deviations , which seem to really rely on countries
-  # they're all bigger..meaning my estimates are higher . why's that ? 
-
-ggplot(devcheck,  aes(year_actual, check_pre_loglin_dev)) +
-  geom_point(aes(colour = factor(country)), size = 1) # here we still have heteroscedasticity in some countries
-
-  #also my estimates too high
-
-ggplot(devcheck, aes(temp_all, check_tmp_loglin_dev)) +
-  geom_point(aes(colour = factor(country)), size= 1) # temperature has no influence, only countries!!
-
-ggplot(devcheck, aes(country, check_tmp_loglin_dev)) +
-  geom_point(aes(colour = factor(year_actual)), size = 1) # all the popsicles look similar ! 
-
 ## let's try another way !!
 
 # we should be able to compare it through another method --> creating a scatterplot from the actual observations, 
@@ -218,9 +140,58 @@ ggplot(malidev, aes(year_actual, originaltrend)) +
   geom_point(aes(colour = factor(country)), size = 1) + 
   stat_smooth(method = "lm", 
             formula = y ~ x)
-
+      
       # it is actually linear !!
       #and and my simple linear regression looks exactly right ... why did I get different outcome before?
+
+#i do my model again
+malitrend <- lm(temp_all ~ year_actual, data = malidev, na.action = na.exclude)
+
+malidev <- cbind(malidev, malitrend = fitted(malitrend))
+plot(malidev$year_actual, malidev$temp_all, type = "l", col = "red")
+lines(malidev$year_actual, malidev$originaltrend, col = "green")
+lines(malidev$year_actual, malidev$malitrend, col = "blue")
+
+#maybe without intercept
+malitrendnobeta0 <- lm(temp_all ~ year_actual + 0, data = malidev, na.action = na.exclude)
+
+malidev <- cbind(malidev, malitrendnobeta0 = fitted(malitrendnobeta0))
+plot(malidev$year_actual, malidev$temp_all, type = "l", col = "red")
+lines(malidev$year_actual, malidev$originaltrend, col = "green")
+lines(malidev$year_actual, malidev$malitrend, col = "blue")
+
+originaltrend <- lm(originaltrend ~ year_actual , data = malidev)
+
+summary(originaltrend)
+
+# try with other country 
+angoladev <- devcheck %>% filter(country == "Angola")
+angoladev <- angoladev %>% mutate(originaltrend = temp_all - cru_temp_diftrend)
+
+ggplot(angoladev, aes(year_actual, originaltrend)) +
+  geom_point(aes(colour = factor(country)), size = 1) + 
+  stat_smooth(method = "lm", 
+              formula = y ~ x)
+
+#i do my model again
+angolatrend <- lm(temp_all ~ year_actual, data = angoladev, na.action = na.exclude)
+
+angoladev <- cbind(angoladev, angolatrend = fitted(angolatrend))
+plot(angoladev$year_actual, angoladev$temp_all, type = "l", col = "red")
+lines(angoladev$year_actual, angoladev$originaltrend, col = "green")
+lines(angoladev$year_actual, angoladev$angolatrend, col = "blue")
+
+#maybe without intercept
+angolatrendnobeta0 <- lm(temp_all ~ year_actual + 0, data = angoladev, na.action = na.exclude)
+
+angoladev <- cbind(angoladev, angolatrendnobeta0 = fitted(angolatrendnobeta0))
+plot(angoladev$year_actual, angoladev$temp_all, type = "l", col = "red")
+lines(angoladev$year_actual, angoladev$originaltrend, col = "green")
+lines(angoladev$year_actual, angoladev$angolatrendnobeta0, col = "blue")
+
+originaltrend <- lm(originaltrend ~ year_actual , data = angoladev)
+
+summary(originaltrend)
 
 #do with all of them
 
