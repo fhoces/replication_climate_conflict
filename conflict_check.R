@@ -65,6 +65,22 @@ view(conflict_check[is.na(conflict_check$onset_diff), ])
 
 #case closed
 
+## check between mine and original
 
+rm(list = ls())
 
+climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+
+climate_conflict_original <- climate_conflict_original %>% select(year_actual, country, war_prio_new, war_onset_new)
+
+my_climate_conflict <- read_csv("./csv_files/climate_conflict.csv")
+
+my_climate_conflict <- my_climate_conflict %>% select(years, countryname, conflict, conflict_onset)
+
+mycompare <- my_climate_conflict %>% left_join(climate_conflict_original, by = c("years" = "year_actual", "countryname" = "country"))
+
+compare(mycompare$conflict, mycompare$war_prio_new)
+
+mycompare <- mycompare %>% mutate(conflict_diff = conflict - war_prio_new,
+                                  onset_diff = conflict_onset - war_onset_new)
 

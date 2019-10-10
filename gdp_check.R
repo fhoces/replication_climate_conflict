@@ -152,3 +152,8 @@ ggplot(gdp_check, aes(gdp, gdp_wb_2)) +
   geom_point(aes(colour = factor(country)))
 
 ## this looks baad...^^
+
+
+
+
+
