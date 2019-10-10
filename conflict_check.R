@@ -29,6 +29,8 @@ climate_conflict_original$country[climate_conflict_original$country == "Cote d`I
 
 conflict_check <- conflict_check %>% right_join(climate_conflict_original, by = c("years" = "year_actual", "countryname" = "country"))
 
+## note that we right-joined ... we seize down to original data obserations, whereas in our data sample there's more observations.
+
 conflict_check[is.na(conflict_check$conflict),] #no missing values in conflict
 
 view(conflict_check[rowSums(is.na(conflict_check)) > 0 ,]) #no missing values 
