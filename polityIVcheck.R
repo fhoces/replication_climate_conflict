@@ -5,6 +5,7 @@ setwd("C:/R/bachelorproject")
 library(readxl)
 library(foreign)
 library(tidyverse)
+library(compare)
 
 #read in polityIV sets
 
@@ -124,4 +125,37 @@ view(polity_check07)
 # we are going to use the polity IV dataset version 2007 , and vlaue 0  for 1993 ethiopia too in the replication then
 
 #done.
+
+##control with my data 
+
+rm(list = ls())
+
+#my data
+
+my_climate_conflict <- read_csv("./csv_files/climate_conflict.csv") 
+
+my_climate_conflict <- my_climate_conflict %>% select(years, countryname, polity2)
+
+#burke data
+climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+
+ccosub <- climate_conflict_original %>% select(year_actual, country, polity_cco =  polity2)
+
+table(my_climate_conflict$years)
+table(ccosub$year_actual)
+
+table(ccosub$country)
+table(my_climate_conflict$countryname)
+
+unique(my_climate_conflict$countryname[!my_climate_conflict$countryname %in% ccosub$country])
+
+unique(ccosub$country[!ccosub$country %in% my_climate_conflict$countryname])
+
+ccosub$country[ccosub$country == "Cote d`Ivoire"] <- "Cote d'Ivoire"
+
+unique(my_climate_conflict$countryname[!my_climate_conflict$countryname %in% ccosub$country])
+
+mydata_ccosub <- my_climate_conflict %>% left_join(ccosub, by = c("years" = "year_actual", "countryname" = "country"))
+
+compare(mydata_ccosub$polity2, mydata_ccosub$polity_cco)
 
