@@ -106,8 +106,8 @@ devcheck <- devcheck %>% mutate(pre_lin_dev = prec_all - pred_lin_pre,
 
 view(devcheck)
 
-  # the difference is pretty small.. I'm not sure if they used a differenct computation ... maybe try other model
-  # weirdly enough : why is my estimate highly similar for all the obs. in year 1995 ??
+  # different ... try other model
+  # weirdly enough : why is my estimate highly similar for  the obs. in year 1995 ??
 
 # check for heteroskecasticity
 
@@ -118,9 +118,10 @@ ggplot(devcheck, aes(prec_all, check_pre_lin_dev)) +
   geom_point(aes(colour = factor(country)), size = 1) # same same
 
 ggplot(devcheck, aes(year_actual, check_tmp_lin_dev)) +
-  geom_point(aes(colour = factor(country)), size = 1) # beautiful autocorrelation.. what went wrong ? 
+  geom_point(aes(colour = factor(country)), size = 1) # beautiful autocorrelation.. what went wrong ?  do I need to force the model through specific points, e.g. mean?
           
-      # we see the center point at 1995.. what am I missing..
+      # the weirdest thing is that for all except for three countries the lines go through zero at 1995...
+      # why most but not all ?!?!
 
 
 ggplot(devcheck, aes(country, check_tmp_lin_dev)) +
@@ -142,7 +143,7 @@ ggplot(malidev, aes(year_actual, originaltrend)) +
             formula = y ~ x)
       
       # it is actually linear !!
-      #and and my simple linear regression looks exactly right ... why did I get different outcome before?
+      
 
 #i do my model again
 malitrend <- lm(temp_all ~ year_actual, data = malidev, na.action = na.exclude)
@@ -193,11 +194,33 @@ originaltrend <- lm(originaltrend ~ year_actual , data = angoladev)
 
 summary(originaltrend)
 
+## we see that for both countries , including intercept has very different effects
+
+
 #do with all of them
 
-devcheck <- devcheck %>% mutate(originaltrend = temp_all - cru_temp_diftrend) #create the linear trends
+devcheck <- devcheck %>% mutate(originaltrend_tmp = temp_all - cru_temp_diftrend,
+                                originaltrend_pre = prec_all - cru_prec_diftrend) #create the linear trends
 
-ggplot(devcheck, aes(year_actual, originaltrend)) +
+ggplot(devcheck, aes(year_actual, originaltrend_tmp)) +
   geom_point(aes(colour = factor(country)), size = 1)
 
+ggplot(devcheck, aes(year_actual, originaltrend_pre)) +
+  geom_point(aes(colour = factor(country)), size = 1)
 
+## plot originaltrend vs. my predictions
+
+ggplot(devcheck, aes(pred_lin_tmp, originaltrend_tmp)) +
+  geom_point(aes(colour = factor(country)), size = 1)
+
+ggplot(devcheck, aes(pred_lin_pre, originaltrend_pre)) +
+  geom_point(aes(colour = factor(country)), size = 1)
+
+# too small to see
+
+
+#### this is a big mystery to me... 
+#     one possible explanation, which I can't proof (without using the old CRU dataset), is , that they used more data 
+#     points than are available in this replication file .
+#     the CRU data spans from much earlier, and they used earlier data points ( for the lag variable), so this might explain it .
+#
