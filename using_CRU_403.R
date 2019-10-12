@@ -129,7 +129,7 @@ names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, t
 
 str(tmp_all_df)
 
-#drop irrelevant columns , leaving only 1979 - 2002
+#drop irrelevant columns , leaving only 1979 - 2006
 #ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
 #I include years 1979 - 1980 to compute climate lags and climate_diff lags. 
 #From the original data, I can not see how they computed the lag variable for 1981, but I assume this is how they did it , too.
@@ -510,7 +510,7 @@ conflict <- read_xls(xlsfname)
 
 #delete obs. not between 1981 and 2006
 
-conflict <- conflict %>% filter(YEAR >= 1981 & YEAR <=2006)
+conflict <- conflict %>% filter(YEAR >= 1979 & YEAR <=2006)
 
 conflict
 #observations in african countries
@@ -655,7 +655,7 @@ climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA val
 view(climate_conflict)
 
 
-view(climate_conflict[is.na(climate_conflict$conflict),])
+view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
 
 #create conflict onset variable
 
@@ -692,18 +692,13 @@ pwt6.2$isocode <- as.character(pwt6.2$isocode)
 pwt6.2$year <- as.character(pwt6.2$year)
 pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
 pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
+pwt6.2$gdp <- pwt6.2$gdp/1000
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
 
 table(is.na(climate_conflict$gdp))#132 missing values
 
 
 view(climate_conflict[is.na(climate_conflict$gdp) & climate_conflict$years <= 2002,]) #Angola -> like in original dataset
-
-# we now assign NA to gdp in djibouti (all years) and liberia (1992 - 2002)
-# because they're  not defined in original dataset --> reason unclear !
-
-climate_conflict[climate_conflict$years >= 1992 & climate_conflict$countryname == "Liberia", ]$gdp <- NA
-climate_conflict[climate_conflict$countryname == "Djibouti",]$gdp <- NA
 
 ##Polity IV data 
 
@@ -757,6 +752,14 @@ table(is.na(climate_conflict$polity2)) #9 missing values
 polityNA <- climate_conflict[is.na(climate_conflict$polity2),]
 view(polityNA) #Namibia politic score only starts in 1990
 
+##
+
+write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
+
+
+### adjust the constructed data table so that it matches the original one 
+
+
 ## delete country-year observations that are missing in original replication files
 ## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. FIRST RECORDED HERE.
 # I do not see the reason behind removing these country-year observation, which is why I will include them in a robustness test later on.
@@ -764,11 +767,23 @@ view(polityNA) #Namibia politic score only starts in 1990
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Angola" & climate_conflict$years %in% 2000:2006),]
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Namibia" & climate_conflict$years %in% 1981:1990),]
 
-write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
+## assigning NA to gdp in djibouti (all years) and liberia (1992 - 2002)
+# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
+# reason unclear !
+
+climate_conflict[climate_conflict$years >= 1992 & climate_conflict$countryname == "Liberia", ]$gdp <- NA
+climate_conflict[climate_conflict$countryname == "Djibouti",]$gdp <- NA
+
+## assinging 0 instead of NA to conflict_onset var. in Congo, Dem. Rep, 1998:2000
+# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
+
+climate_conflict[climate_conflict$years %in% 1998:2000 & climate_conflict$countryname == "Congo, Dem. Rep.",]$conflict_onset <- NA
 
 ## check completeness óf data
 
 view(climate_conflict[rowSums(is.na(climate_conflict)) >0 & climate_conflict$years <= 2002, ])
+
+
 ### regressions
 
 climate_conflict$years <- as.numeric(climate_conflict$years) #need the numeric value of years for interaction term
