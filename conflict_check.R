@@ -3,6 +3,8 @@
 rm(list = ls())
 
 library(foreign)
+library(compare)
+library(tidyverse)
 
 setwd("C:/R/bachelorproject")
 
@@ -46,7 +48,7 @@ conflict_check <- conflict_check %>% mutate(conflict_diff = ifelse(conflict == w
 
 table(conflict_check$conflict_diff) # all obs. similar 
 
-table(conflict_check$onset_diff) # 970 similar, the rest NA
+table(conflict_check$onset_diff) # 972 similar, the rest NA
 
 #check for NA values in onset
 
@@ -64,23 +66,3 @@ view(conflict_check[is.na(conflict_check$onset_diff), ])
 # decision to be made which to use.
 
 #case closed
-
-## check between mine and original
-
-rm(list = ls())
-
-climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
-
-climate_conflict_original <- climate_conflict_original %>% select(year_actual, country, war_prio_new, war_onset_new)
-
-my_climate_conflict <- read_csv("./csv_files/climate_conflict.csv")
-
-my_climate_conflict <- my_climate_conflict %>% select(years, countryname, conflict, conflict_onset)
-
-mycompare <- my_climate_conflict %>% left_join(climate_conflict_original, by = c("years" = "year_actual", "countryname" = "country"))
-
-compare(mycompare$conflict, mycompare$war_prio_new)
-
-mycompare <- mycompare %>% mutate(conflict_diff = conflict - war_prio_new,
-                                  onset_diff = conflict_onset - war_onset_new)
-
