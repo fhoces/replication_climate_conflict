@@ -105,6 +105,7 @@ ggplot(gdp_check, aes(year_actual, gdp_rgdptt_dev)) +
   geom_point(aes(colour = factor(country)))
 
  # it also seems very randomly distributed across the years
+ # which makes it unlogical that a possible conversion factor from 2000 USD to 1985 USD is missing.
 
 
 rgdpttmodel3 <- lm(gdp ~ rgdptt + year_actual, data = gdp_check)
@@ -117,7 +118,7 @@ t.test(gdp_check$gdp_rgdptt_dev)
 #and the deviation is not significantly different from zero, using one sample t test.
 
 #why is it different ?
-# actually, it should be more different as pwt6.2 gives out values in 2000 USD instead of authors stated 1985 USD.
+# actually, it should be more different as pwt6.2 gives out values in year 2000 USD instead of authors stated year 1985 USD.
 
 
 ## for WDI : downloaded manually because of non-functionality (for now) of wbstats package for WDI archive
@@ -155,5 +156,20 @@ ggplot(gdp_check, aes(gdp, gdp_wb_2)) +
 
 
 
+## import my data
 
+rm(list = ls())
 
+mydata <- read_csv("./csv_files/climate_conflict.csv")
+
+original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+
+gdp_compare <- mydata %>% right_join(original, by = c("years" = "year_actual", "countryname" = "country"))
+                                     
+gdp_compare <- gdp_compare %>% mutate(gdp_diff = gdp.x - gdp.y)
+
+ggplot(gdp_compare, aes(gdp.x, gdp_diff)) + 
+  geom_point(aes(colour = factor(countryname)))
+
+ggplot(gdp_compare, aes(years, gdp_diff)) +
+  geom_point(aes(colour = factor(countryname)))
