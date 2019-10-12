@@ -155,7 +155,7 @@ ccosub$country[ccosub$country == "Cote d`Ivoire"] <- "Cote d'Ivoire"
 
 unique(my_climate_conflict$countryname[!my_climate_conflict$countryname %in% ccosub$country])
 
-mydata_ccosub <- my_climate_conflict %>% left_join(ccosub, by = c("years" = "year_actual", "countryname" = "country"))
+mydata_ccosub <- my_climate_conflict %>% right_join(ccosub, by = c("years" = "year_actual", "countryname" = "country"))
 
-compare(mydata_ccosub$polity2, mydata_ccosub$polity_cco)
+compare(mydata_ccosub$polity2, mydata_ccosub$polity_cco) # TRUE -> for all country year obs. same value
 
