@@ -66,3 +66,47 @@ view(conflict_check[is.na(conflict_check$onset_diff), ])
 # decision to be made which to use.
 
 #case closed
+
+##
+
+## something different - where do the conflict obs. stem from ? 
+
+rm(list = ls())
+
+setwd("C:/R/bachelorproject")
+
+library(tidyverse)
+
+
+mydata <- read_csv("./csv_files/climate_conflict.csv")
+
+mydata <- mydata %>% select(countryname, years, conflict, conflict_onset)
+
+table(mydata$conflict) # 0 - 959 times, 1 - 107 times
+
+107/(959+107) #10 percent of country-year obs. conflict
+
+table(mydata[mydata$conflict == 1,]$countryname)
+
+unique(mydata$countryname)
+africanworldwarcountries <- c("Congo, Dem. Rep.", 
+                              "Congo, Republic of",
+                              "Angola", 
+                              "Central African Republic", 
+                              "Uganda", 
+                              "Rwanda",
+                              "Burundi",
+                              "Tanzania",
+                              "Zambia")
+
+table(mydata[mydata$countryname %in% africanworldwarcountries,]$conflict) 
+
+45/(189+45) #20 percent of country-year obs. conflict
+
+45/107 # 42 %, nearly half, of the country-year obs. having conflict come from "african world war" countries.
+
+## same for conflict_onset
+
+table(mydata$conflict_onset) # 0 - 959 times, 1 - 27 times
+
+table(mydata[mydata$countryname %in% africanworldwarcountries,]$conflict_onset) # 0 - 189, 1 - 11 times
