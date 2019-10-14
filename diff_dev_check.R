@@ -224,3 +224,27 @@ ggplot(devcheck, aes(pred_lin_pre, originaltrend_pre)) +
 #     points than are available in this replication file .
 #     the CRU data spans from much earlier, and they used earlier data points ( for the lag variable), so this might explain it .
 #
+
+
+## check with my computed data
+
+rm(list =ls())
+
+mydata <- read_csv("./csv_files/climate_conflict.csv")
+
+original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+
+
+mydata <- mydata %>% left_join(original , by = c("years" = "year_actual", "countryname" = "country"))
+
+summary(mydata$pre_difftrend)
+summary(mydata$cru_prec_diftrend)
+
+summary(mydata$tmp_difftrend)
+summary(mydata$cru_temp_diftrend)
+
+ggplot(mydata, aes(tmp_difftrend, cru_prec_diftrend)) +
+  geom_point(aes(colour = factor(countryname)))
+
+ggplot(mydata, aes(years, tmp_difftrend)) +
+  geom_point(aes(colour = factor(countryname)))

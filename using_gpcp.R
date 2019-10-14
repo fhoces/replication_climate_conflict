@@ -35,7 +35,7 @@ ncfname <- paste(ncpath,ncname, ".nc", sep = "")
 dname <- "precip"
 
 #open netCDF file
-
+gpcp_all <- read0GR(ncfname, layer = )
 gpcp_all <- ncdf4::nc_open(ncfname)
 gpcp_all
 

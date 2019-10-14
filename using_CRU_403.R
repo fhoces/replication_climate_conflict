@@ -316,10 +316,37 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp),
 # we define climate difference in year t as difference between climate in year t and year t-1
 # this is assumed to be the meassure, even tho controlling in the original replication file doesn't confirm this 100%, maybe due to rouding error
 
+#diff
 country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
-                                              tmp_diff_lag = dplyr::lag(tmp_diff),)
+                                              tmp_diff_lag = dplyr::lag(tmp_diff))
+                                             
+#dev
 
+#estimate trend for tmp
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED HERE.
+# I define the trend as a countryspefic, linear trend estimation with one regressor plus intercept 
+# during the years 1981 - 2002. The authors seem to have been using a different dataset, but as I'm using another 
+# dataset version I can not be certain which.
 
+trendcoef <- country_tmp_ann %>% 
+  filter(years >=1981, years <= 2002) %>%
+  group_by(iso3) %>% 
+  do(model_lin_tmp = lm(tmp ~ years, .)) %>%
+  ungroup()
+
+trendcoef
+
+#use these estimates to compute predictions for all obs.
+
+country_tmp_ann <- country_tmp_ann %>% left_join(trendcoef, by = "iso3")
+
+country_tmp_ann <- country_tmp_ann %>% 
+  filter(years >=1981, years <= 2002) %>% 
+  group_by(iso3) %>% 
+  do(modelr::add_predictions(., first(.$model_lin_tmp), var = "pred_lin_tmp"))
+
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_difftrend = tmp - pred_lin_tmp)
+country_tmp_ann <- country_tmp_ann %>% select(-model_lin_tmp, -pred_lin_tmp) 
 
 view(country_tmp_ann)
 ### temperature finished
@@ -481,6 +508,33 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre),
 
 country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
                                               pre_diff_lag = dplyr::lag(pre_diff))
+
+
+#dev
+
+#estimate trend for tmp
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED IN LINE 326.
+
+
+trendcoef <- country_pre_ann %>% 
+  filter(years >=1981, years <= 2002) %>%
+  group_by(iso3) %>% 
+  do(model_lin_pre = lm(pre ~ years, .)) %>%
+  ungroup()
+
+trendcoef
+
+#use these estimates to compute predictions for all obs.
+
+country_pre_ann <- country_pre_ann %>% left_join(trendcoef, by = "iso3")
+
+country_pre_ann <- country_pre_ann %>% 
+  filter(years >=1981, years <= 2002) %>% 
+  group_by(iso3) %>% 
+  do(modelr::add_predictions(., first(.$model_lin_pre), var = "pred_lin_pre"))
+
+country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre)
+country_pre_ann <- country_pre_ann %>% select(-model_lin_pre, -pred_lin_pre) 
 
 
 view(country_pre_ann)
