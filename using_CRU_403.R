@@ -328,8 +328,9 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
 # during the years 1981 - 2002. The authors seem to have been using a different dataset, but as I'm using another 
 # dataset version I can not be certain which.
 
-trendcoef <- country_tmp_ann %>% 
-  filter(years >=1981, years <= 2002) %>%
+country_tmp_ann <- country_tmp_ann %>% filter(years >= 1981, years <= 2002)
+
+trendcoef <- country_tmp_ann %>%
   group_by(iso3) %>% 
   do(model_lin_tmp = lm(tmp ~ years, .)) %>%
   ungroup()
@@ -341,7 +342,6 @@ trendcoef
 country_tmp_ann <- country_tmp_ann %>% left_join(trendcoef, by = "iso3")
 
 country_tmp_ann <- country_tmp_ann %>% 
-  filter(years >=1981, years <= 2002) %>% 
   group_by(iso3) %>% 
   do(modelr::add_predictions(., first(.$model_lin_tmp), var = "pred_lin_tmp"))
 
@@ -350,6 +350,12 @@ country_tmp_ann <- country_tmp_ann %>% select(-model_lin_tmp, -pred_lin_tmp)
 
 view(country_tmp_ann)
 ### temperature finished
+
+ggplot(country_tmp_ann, aes(years, tmp)) +
+  geom_point(aes(colour = factor(iso3)))
+ggplot(country_tmp_ann, aes(years, pred_lin_tmp)) +
+  geom_point(aes(colour = factor(iso3)))
+
 
 write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann.csv")
 
