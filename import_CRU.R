@@ -1,8 +1,25 @@
-rm(list=ls())
+rm(list = ls())
 
-library(tidyverse)
+setwd("C:/R/bachelorproject")
 
-setwd("C:/R/bachelorproject/")
+#load packages
+package_load <- function(x) {
+  for (i in x) {
+    # require returns TRUE invisibly if it was able to load packages
+    if ( ! require (i, character.only = TRUE)) {
+      # IF package was not able to be loaded ten re-install
+      install.packages(i, dependencies = T)
+      
+    }
+    
+  }
+}
+
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
+              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils")
+
+package_load(packages)
+
 
 tmp <- readLines("./cruimport/cru_ts_2_10.1901-2002.tmp")
 tmp <- tmp[6:length(tmp)]
@@ -18,7 +35,7 @@ gridtable$y <- as.numeric(gridtable$y)
 
 tmplines <- grep(x = tmp, pattern = "^Grid-ref", value = TRUE, invert = TRUE)
 tmptable <- read.table(text = tmplines)
-names(tmptable) <- c("Jan","Feb","Mar","Apr", "Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+names(tmptable) <- c("Jan","Feb","Mar","Apr", "May", "Jun","Jul","Aug","Sep","Oct","Nov","Dec")
 
 
 years <- c(1901:2002)
@@ -123,10 +140,12 @@ rm(gadmshape0)
 
 
 
+
 ##get tmp data for the single countries
 
 #delete irrelevant grids in the tmp_red_df dataframe
 summary(gadmshape0afr)
+
 #we see in gadmshape0afr for which extent data is defined for a country
 
 tmp_redafr <- subset(tmp, lon >= -17.75 & lon <=51.5 & lat >= -35 & lat <= 27.5)
@@ -144,7 +163,7 @@ tmp_pts
 #get the location for the grid cells in tmp dataframe
 
 loc_tmps <- tmp_pts %over% gadmshape0afr
-na.omit(loc_tmps)
+dim(na.omit(loc_tmps))
 summary(loc_tmps)
 
 ##merging the temperature (incl. lon +lat) with the country codes
@@ -164,5 +183,16 @@ head(full_tmp)
 
 #NAME_0 is unnecessary, and we won't need lon and lat anymore
 
-full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
+full_tmp <- full_tmp %>% dplyr::select(-NAME_0, -lon, -lat)
+
+
+country_tmp <- aggregate(full_tmp[3:ncol(full_tmp)], by = c(list(full_tmp$GID_0), list(full_tmp$yearsrep)), mean)
+names(country_tmp)[1] <- "iso3"
+names(country_tmp)[2] <- "years"
+
+country_tmp <- country_tmp %>% mutate(yearly_mean = rowMeans(dplyr::select(.,"Jan":"Dec"))) %>% dplyr::select(iso3, years, tmp = yearly_mean) %>% arrange(iso3, years)
+
+country_tmp$tmp <- country_tmp$tmp*0.1 # for correct degree value
+
+write_csv(country_tmp, "./csv_files/cru2_1_tmp.csv")
 

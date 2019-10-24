@@ -247,7 +247,7 @@ tmp_pts
 #get the location for the grid cells in tmp dataframe
 
 loc_tmps <- tmp_pts %over% gadmshape0afr
-na.omit(loc_tmps)
+dim(na.omit(loc_tmps))
 summary(loc_tmps)
 
 ##merging the temperature (incl. lon +lat) with the country codes
