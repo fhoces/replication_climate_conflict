@@ -870,7 +870,7 @@ africancountries$countryname[!africancountries$countryname %in% conflict$country
 ##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 438.
 #if changing the variable defintion for conflict, e.g. not being location but SideA, then needs to be changed here too.
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
-#in addition to using location , we now require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
+#in addition to using location , we require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
 conflict <- conflict %>% 
   filter(countryname %in% africancountries$countryname & Int == 2) %>% 
   select(countryname, YEAR)
@@ -907,6 +907,9 @@ view(climate_conflict)
 
 view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
 
+# because of missing climate data, the data has been rearranged.. sort 
+
+climate_conflict <- climate_conflict %>% arrange(iso3, years)
 #create conflict onset variable
 
 conflict_onset_rows <- which(climate_conflict$conflict == 1 & dplyr::lag(climate_conflict$conflict)==0 & dplyr::lag(climate_conflict$countryname) == climate_conflict$countryname) #creates rowIDs where conflict onsets

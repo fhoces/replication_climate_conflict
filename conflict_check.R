@@ -39,7 +39,7 @@ view(conflict_check[rowSums(is.na(conflict_check)) > 0 ,]) #no missing values
 
 table(conflict_check$war_onset_new)
 
-conflict_check[!conflict_check$conflict == conflict_check$war_prio_new,]
+conflict_check[!conflict_check$conflict == conflict_check$war_prio_new,] # all conflict obs. same
 
 view(conflict_check)
 
