@@ -21,7 +21,7 @@ packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape"
 package_load(packages)
 
 
-tmp <- readLines("./cruimport/cru_ts_2_10.1901-2002.tmp")
+tmp <- readLines("./data/cru_data/cru_ts_2_10.1901-2002.tmp")
 tmp <- tmp[6:length(tmp)]
 
 gridrefs <- grep(tmp, pattern = "^Grid-ref", value=TRUE)
@@ -158,7 +158,10 @@ row.names(tmp_redafr) <- c(1:nrow(tmp_redafr))
 
 tmp_coords <- cbind(tmp_redafr$lon, tmp_redafr$lat)
 tmp_pts <- SpatialPoints(coords = tmp_coords, proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
-tmp_pts
+
+tmp_pts_count <- as.data.frame(tmp_pts)
+tmp_pts_count <- rename(count(tmp_pts_count, coords.x1, coords.x2), Freq = n)
+table(tmp_pts_count$Freq) #all spatial points sets have same frequency --> good!
 
 #get the location for the grid cells in tmp dataframe
 
@@ -185,7 +188,6 @@ head(full_tmp)
 
 full_tmp <- full_tmp %>% dplyr::select(-NAME_0, -lon, -lat)
 
-
 country_tmp <- aggregate(full_tmp[3:ncol(full_tmp)], by = c(list(full_tmp$GID_0), list(full_tmp$yearsrep)), mean)
 names(country_tmp)[1] <- "iso3"
 names(country_tmp)[2] <- "years"
@@ -196,3 +198,48 @@ country_tmp$tmp <- country_tmp$tmp*0.1 # for correct degree value
 
 write_csv(country_tmp, "./csv_files/cru2_1_tmp.csv")
 
+## the check (see check_cru2_10.R) shows that they don't match the original results.
+
+## do same for precipitation
+
+
+
+pre <- readLines("./data/cru_data/cru_ts_2_10.1901-2002.pre")
+pre <- pre[6:length(pre)]
+
+gridrefs <- grep(pre, pattern = "^Grid-ref", value=TRUE)
+head(gridrefs)
+
+gridtable <- read.table(text = gridrefs)
+names(gridtable) <- c("grid-ref", "x", "y")
+gridtable$x <- as.numeric(gridtable$x)
+gridtable$y <- as.numeric(gridtable$y)
+
+
+prelines <- grep(x = pre, pattern = "^Grid-ref", value = TRUE, invert = TRUE)
+
+pretable <- read.table(text = prelines)
+#lines corrupt, because too big values join together... correct:
+#ANALYTICAL CHOICE MADE OF TYPE PROCESSING - OTHERS. 
+#I assume the way which digits of the joined numbers are part of the numbers.
+
+prelines[7108] <- as.character("2081 1538 2457 4273 1585 1802 1132 655 880 2780 1819 10557")
+prelines[70280] <- as.character("1053 11961 4465 3663 3361 965 1409 3437 1189 2647 4849 5707")
+prelines[70303] <- as.character("1613 2173 10326 3495 3176 2418 1294 3197 1120 2932 1811 3430")
+prelines[70322] <- as.character("152 3452 10207 1966 3154 1632 472 1078 1190 1614 2217 1929")
+
+#this is gonna take ages, let's check how many values
+
+pretable <- read.table(text = prelines, fill = T)
+dim(pretable[rowSums(is.na(pretable)) > 0 ,]) # there's 7672 lines where two obs. join together because they're more than 4 digits each
+
+# hm.. somehow code who splits numbers with more than 4 digits ... 
+# kind of in the concept of 
+# for (i in prelines) {
+#   strsplit(i, " ")
+#   for (j in prelines[i]) {
+#     if (length(j) > 4) { ??
+#       
+#     }
+#   }
+# }
