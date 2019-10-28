@@ -1,12 +1,29 @@
 ##check conflict variables
 
+##set up
+
 rm(list = ls())
 
-library(foreign)
-library(compare)
-library(tidyverse)
-
 setwd("C:/R/bachelorproject")
+
+#load packages
+package_load <- function(x) {
+  for (i in x) {
+    # require returns TRUE invisibly if it was able to load packages
+    if ( ! require (i, character.only = TRUE)) {
+      # IF package was not able to be loaded ten re-install
+      install.packages(i, dependencies = T)
+      
+    }
+    
+  }
+}
+
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
+              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare")
+
+package_load(packages)
+
 
 #import original file
 

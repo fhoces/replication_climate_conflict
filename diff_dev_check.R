@@ -237,14 +237,45 @@ original <- read.dta("./climate_conflict_replication_(original)/climate_conflict
 
 mydata <- mydata %>% left_join(original , by = c("years" = "year_actual", "countryname" = "country"))
 
+summary(mydata$tmp_diff)
+summary(mydata$temp_all_dif)
+# similar range and mean/median
+
+summary(mydata$pre_diff)
+summary(mydata$prec_all_dif)
+#same for precipitation
+
 summary(mydata$pre_difftrend)
 summary(mydata$cru_prec_diftrend)
 
 summary(mydata$tmp_difftrend)
 summary(mydata$cru_temp_diftrend)
+# also similar range for dev from trend
 
-ggplot(mydata, aes(tmp_difftrend, cru_prec_diftrend)) +
+
+mydata <- mydata %>% mutate(tmp_diff_diff = tmp_diff - temp_all_dif,
+                            tmp_diff_diff_dev = tmp_diff_diff/temp_all_dif,
+                            pre_diff_diff = pre_diff - prec_all_dif,
+                            pre_diff_diff_dev = pre_diff_diff/prec_all_dif)
+
+#check tmp differences 
+ggplot(mydata, aes(tmp_diff, temp_all_dif))+
+  geom_point(aes(colour = factor(countryname))) # they're different , but scattered around similarity, no country trend
+ggplot(mydata, aes(tmp_diff, temp_all_dif))+
+  geom_point(aes(colour = factor(years))) # no time trend
+
+##check for precipitation
+ggplot(mydata, aes(pre_diff, prec_all_dif))+
   geom_point(aes(colour = factor(countryname)))
+
+ggplot(mydata, aes(pre_diff, prec_all_dif))+
+  geom_point(aes(colour = factor(years)))
+    # we obtain same results like for tmp --> different in CRU 2 compared to CRU 4 , but not correlated with country or year
+
+
+ggplot(mydata, aes(cru_prec_diftrend,tmp_difftrend)) +
+  geom_point(aes(colour = factor(countryname)))
+      # huge scatter, but general trend visible -> negative correlation (why?)
 
 ggplot(mydata, aes(years, tmp_difftrend)) +
   geom_point(aes(colour = factor(countryname)))

@@ -130,6 +130,7 @@ view(polity_check07)
 
 rm(list = ls())
 
+setwd("C:/R/bachelorproject")
 #my data
 
 my_climate_conflict <- read_csv("./csv_files/climate_conflict.csv") 
@@ -143,9 +144,11 @@ ccosub <- climate_conflict_original %>% select(year_actual, country, polity_cco 
 
 table(my_climate_conflict$years)
 table(ccosub$year_actual)
+#40 vs 41 in mine
 
 table(ccosub$country)
 table(my_climate_conflict$countryname)
+#in original, instead of 26 for most , in angola 19 and in namibia 16
 
 unique(my_climate_conflict$countryname[!my_climate_conflict$countryname %in% ccosub$country])
 

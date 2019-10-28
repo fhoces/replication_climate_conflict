@@ -1,14 +1,28 @@
 ##compare GDP in original data with possible datasets
 
+##set up
+
 rm(list = ls())
 
-library(foreign)
-library(tidyverse)
-library(pwt)
-library(ggplot2)
-library(wbstats)
-
 setwd("C:/R/bachelorproject")
+
+#load packages
+package_load <- function(x) {
+  for (i in x) {
+    # require returns TRUE invisibly if it was able to load packages
+    if ( ! require (i, character.only = TRUE)) {
+      # IF package was not able to be loaded ten re-install
+      install.packages(i, dependencies = T)
+      
+    }
+    
+  }
+}
+
+packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
+              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare")
+
+package_load(packages)
 
 #import original data
 climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
@@ -161,15 +175,44 @@ ggplot(gdp_check, aes(gdp, gdp_wb_2)) +
 rm(list = ls())
 
 mydata <- read_csv("./csv_files/climate_conflict.csv")
-
+mydata <- mydata %>% select(countryname, years, gdp)
 original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
+original <- original %>% select(country, year_actual, gdp)
+original$country[original$country == "Cote d`Ivoire"] <- "Cote d'Ivoire"
 
 gdp_compare <- mydata %>% right_join(original, by = c("years" = "year_actual", "countryname" = "country"))
                                      
-gdp_compare <- gdp_compare %>% mutate(gdp_diff = gdp.x - gdp.y)
+gdp_compare <- gdp_compare %>% mutate(gdp_diff = gdp.x - gdp.y,
+                                      gdp_dev = gdp_diff/gdp.y)
 
+t.test(gdp_compare$gdp_diff) # not significant from 0
+t.test(gdp_compare$gdp_dev) # same
+
+#see for gdp_diff
 ggplot(gdp_compare, aes(gdp.x, gdp_diff)) + 
   geom_point(aes(colour = factor(countryname)))
 
 ggplot(gdp_compare, aes(years, gdp_diff)) +
   geom_point(aes(colour = factor(countryname)))
+
+# see for deviation
+
+ggplot(gdp_compare, aes(gdp.x, gdp_dev)) +
+  geom_point(aes(colour = factor(countryname)))
+ggplot(gdp_compare, aes(years, gdp_diff)) +
+  geom_point(aes(colour = factor(countryname)))
+
+##bottom line : my difference is really small, and no country or country trends seen.
+## except country/gdp-level trend in deviation: relatively big deviation for gdp around 1.5
+# but still , small
+
+
+view(gdp_compare[rowSums(is.na(gdp_compare)) > 0, ])
+
+# quite some missing values. Liberia (from 1992), Lesotho and Djibouti, I have in my data, but not in original
+#--> most likely because data from diffrent source : WB as well
+
+# Congo (Republic of ) for 2004 in original but not in mine / not relevant time period tho
+
+# other NA's in obth data sets.
+

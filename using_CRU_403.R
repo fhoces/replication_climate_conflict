@@ -20,7 +20,7 @@ package_load <- function(x) {
 }
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
-              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils")
+              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare")
 
 package_load(packages)
 
@@ -325,25 +325,29 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
 #estimate trend for tmp
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED HERE.
 # I define the trend as a countryspefic, linear trend estimation with one regressor plus intercept 
-# during the years 1981 - 2002. The authors seem to have been using a different dataset, but as I'm using another 
-# dataset version I can not be certain which.
+# during the years 1981 - 2002. The authors seem to have been using a different time period(see complementary script: diff_dev_check.R)
+# but as I'm using another dataset version I can not be certain which.
 
-country_tmp_ann <- country_tmp_ann %>% filter(years >= 1981, years <= 2002)
+country_tmp_ann <- country_tmp_ann %>% filter(years >= 1981, years <= 2002) # see above analytical choice of calculating trend
+country_tmp_ann$years <- as.numeric(country_tmp_ann$years) #to calculate model correctly (instead of having regressor for each year when charactar)
 
+#calculate a linear tmp model for each country
 trendcoef <- country_tmp_ann %>%
   group_by(iso3) %>% 
   do(model_lin_tmp = lm(tmp ~ years, .)) %>%
   ungroup()
 
-trendcoef
+trendcoef$model_lin_tmp
 
 #use these estimates to compute predictions for all obs.
 
-country_tmp_ann <- country_tmp_ann %>% left_join(trendcoef, by = "iso3")
+country_tmp_ann <- country_tmp_ann %>% left_join(trendcoef, by = "iso3") #add model column to dataset
 
 country_tmp_ann <- country_tmp_ann %>% 
   group_by(iso3) %>% 
   do(modelr::add_predictions(., first(.$model_lin_tmp), var = "pred_lin_tmp"))
+
+country_tmp_ann$years <- as.character(country_tmp_ann$years) # convert back to character for later merge
 
 country_tmp_ann <- country_tmp_ann %>% mutate(tmp_difftrend = tmp - pred_lin_tmp)
 country_tmp_ann <- country_tmp_ann %>% select(-model_lin_tmp, -pred_lin_tmp) 
@@ -516,6 +520,8 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
 #estimate trend for tmp
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED IN LINE 326.
 
+country_pre_ann$years <- as.numeric(country_pre_ann$years) #to calculate model correctly (instead of having regressor for each year when charactar)
+
 
 trendcoef <- country_pre_ann %>% 
   filter(years >=1981, years <= 2002) %>%
@@ -533,6 +539,8 @@ country_pre_ann <- country_pre_ann %>%
   filter(years >=1981, years <= 2002) %>% 
   group_by(iso3) %>% 
   do(modelr::add_predictions(., first(.$model_lin_pre), var = "pred_lin_pre"))
+
+country_pre_ann$years <- as.character(country_pre_ann$years) #convert back to character
 
 country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre)
 country_pre_ann <- country_pre_ann %>% select(-model_lin_pre, -pred_lin_pre) 
@@ -734,7 +742,7 @@ dim(country_gpcp_ann)
 
 #adjust unit : divide by 100
 
-country_gpcp_ann$pre <- country_gpcp_ann$pre/100
+country_gpcp_ann$gpcp <- country_gpcp_ann$gpcp/100
 
 #write into file
 
@@ -1020,17 +1028,22 @@ write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Angola" & climate_conflict$years %in% 2000:2006),]
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Namibia" & climate_conflict$years %in% 1981:1990),]
 
-## assigning NA to gdp in djibouti (all years) and liberia (1992 - 2002)
+## assigning NA to gdp in djibouti (all years) and liberia (1992 - 2002), and Lesotho
 # ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
 # reason unclear !
 
 climate_conflict[climate_conflict$years >= 1992 & climate_conflict$countryname == "Liberia", ]$gdp <- NA
 climate_conflict[climate_conflict$countryname == "Djibouti",]$gdp <- NA
+climate_conflict[climate_conflict$countryname == "Lesotho",]$gdp <- NA
 
 ## assinging 0 instead of NA to conflict_onset var. in Congo, Dem. Rep, 1998:2000
 # ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
 
 climate_conflict[climate_conflict$years %in% 1998:2000 & climate_conflict$countryname == "Congo, Dem. Rep.",]$conflict_onset <- NA
+
+# relevant time period
+
+climate_conflict <- climate_conflict %>% filter(years <= 2002)
 
 ## check completeness óf data
 
