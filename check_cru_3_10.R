@@ -57,6 +57,7 @@ mydata3 <- mydata3 %>% select(countryname, years,
 
 climate_conflict_original$country[climate_conflict_original$country == "Cote d`Ivoire"] <- "Cote d'Ivoire"
 
+## compare the original data with my computation of CRU 3.10
 climate_check <- climate_conflict_original %>% left_join(mydata3, by = c("year_actual" = "years" , "country" = "countryname"))
 
 
@@ -69,3 +70,16 @@ ggplot(climate_check, aes(tmp, temp_all)) +
 
 ggplot(climate_check, aes(pre, prec_all)) +
   geom_point(aes(colour = factor(country)))
+
+## compare my compuation of CRU 3.10 with my computation of CRU 4.03
+
+climate_check <- mydata3 %>% left_join(mydata4, by = c("years", "countryname"))
+view(climate_check[rowSums(is.na(climate_check)) > 0 & climate_check$years <= 2002, ]) #no missing values both sides for 1981 - 2002
+
+## check tmp and pre
+
+ggplot(climate_check, aes(tmp.x, tmp.y)) +
+  geom_point(aes(colour = factor(countryname)))
+
+ggplot(climate_check, aes(pre.x, pre.y)) +
+  geom_point(aes(colour = factor(countryname)))

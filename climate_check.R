@@ -123,6 +123,6 @@ ggplot(climate_check, aes(gpcp.x, gpcp.y)) +
 
 #this is a mess... something went horribly wrong
 
-summary(lm(gpcp.y ~ gpcp.x + factor(countryname)*years,
+summary(lm(gpcp.y ~ gpcp.x + factor(country)*year_actual,
            data = climate_check))
            
