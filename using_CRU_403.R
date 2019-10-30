@@ -20,7 +20,7 @@ package_load <- function(x) {
 }
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
-              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare")
+              "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare", "maptools")
 
 package_load(packages)
 
@@ -223,7 +223,7 @@ iso3afr[!iso3afr %in% gadmiso]
 gadmshape0afr <- gadmshape0[gadmshape0$GID_0 %in% iso3afr,]
 
 summary(gadmshape0afr)
-rm(gadmshape0)
+
 
 
 ##get tmp data for the single countries
@@ -509,7 +509,7 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre),
                                               pre_lag_square = pre_lag^2)
 
 #create diff and dev from trend
-# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 313. 
+# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 315. 
 
 country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
                                               pre_diff_lag = dplyr::lag(pre_diff))
@@ -517,7 +517,7 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
 
 #dev
 
-#estimate trend for tmp
+#estimate trend for pre
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED IN LINE 326.
 
 country_pre_ann$years <- as.numeric(country_pre_ann$years) #to calculate model correctly (instead of having regressor for each year when charactar)
@@ -957,6 +957,9 @@ data("pwt6.2")
 pwt6.2$isocode <- as.character(pwt6.2$isocode)
 pwt6.2$year <- as.character(pwt6.2$year)
 pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
+
+# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+# I use rgdptt as the GDP meassure (see https://cran.r-project.org/web/packages/pwt/pwt.pdf for definition)
 pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
 pwt6.2$gdp <- pwt6.2$gdp/1000
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
@@ -1150,3 +1153,734 @@ tableS8_model3 <- lm(conflict ~ tmp + tmp_square + factor(iso3)*years,
                      data = climate_conflict)
 tableS8_model4 <- lm(conflict ~ tmp + tmp_square + tmp_lag + tmp_lag_square + pre + pre_square + pre_lag + pre_lag_square + factor(iso3)*years,
                      data = climate_conflict)
+
+
+### robustness checks
+
+climate_conflict$years <- as.character(climate_conflict$years) #need the character for merge with new data
+
+## using new GDP meassure --> pwt 9
+
+data("pwt9.1")
+view(pwt9.1)
+pwt9.1$isocode <- as.character(pwt9.1$isocode)
+pwt9.1$year <- as.character(pwt9.1$year)
+
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+#defining GDP as real GDP at constant national prices
+pwt9.1 <- pwt9.1 %>% filter(year>= 1981, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9 = rgdpo)
+pwt9.1$GDP_pwt9 <- pwt9.1$GDP_pwt9/1000
+
+climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
+
+table(is.na(climate_conflict$GDP_pwt9)) #22 missing values
+
+view(climate_conflict[is.na(climate_conflict$GDP_pwt9),]) #SOM
+
+
+##Polity IV current dataset (2018)
+
+polity_url <- "http://www.systemicpeace.org/inscr/p4v2018.xls"
+dest_polity <- "./data/polity/polityIV.xls"
+
+if(!file.exists(dest_polity)) {
+  
+  download.file(polity_url, dest_polity, mode = "wb")
+}
+
+
+polity <- read_xls(dest_polity)
+view(polity)
+
+##scodes are different from iso3 codes, so we have to redine them
+polity <- as.data.frame(polity) #resolves issue with warning message : unknown or uninitialised column = "country"
+polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
+uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
+
+unique(polityjoin$country[is.na(polityjoin$iso3)])
+#can we find african countries? 
+#Cote D'Ivoire, Ivory coast, congo brazzaville (this is republic) , congo kinshasa (this is democratic republic), gambia, 
+
+polity$country[polity$country == "Cote D'Ivoire"] <- "Cote d'Ivoire"
+polity$country[polity$country == "Ivory Coast"] <- "Cote d'Ivoire"
+polity$country[polity$country == "Congo Brazzaville"] <- "Congo, Republic of"
+polity$country[polity$country == "Congo Kinshasa"] <- "Congo, Dem. Rep."
+polity$country[polity$country == "Gambia"] <- "Gambia, The"
+
+
+polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
+uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) #41 iso codes --> good
+
+
+##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 1000.
+##using polity2 as meassure of political system.
+
+polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
+  select(years = year, iso3, polity2_2018 = polity2)
+polityjoin$years <- as.character(polityjoin$years)
+
+climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
+table(climate_conflict$countryname) #ethiopia has 23 obs. instead of 22
+
+#ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED IN LINE 1014.
+
+climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2_2018 == 0),]
+
+
+
+table(is.na(climate_conflict$polity2_2018)) # no missing values ! (opposed to 9 missing values for Namibia in polityIV 2008)
+
+
+## using (current) GDP from the WB 
+#GDP is used by Burke as well, but in the old version of the WDI (probably May 2009), in 1985 USD values
+
+str(wb_cachelist, max.level = 1)
+
+income_vars <- wbsearch(pattern = "gross domestic")
+view(income_vars)
+
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE. 
+#I define jgdp as Gross domestic income (constant 1987 US$) 
+
+#wanna use that, but returns error --> broken package or at WB API ? contacted Jesse
+#world_bank <- wb(indicator = c("NY.GDY.TOTL.KD.87"), startdate = 1981, enddate = 2006, return_wide = T)
+
+world_bank <- wb(indicator = c("NY.GDP.PCAP.KD"), startdate = 1981, enddate = 2006, return_wide = T)
+
+world_bank_GDP <- as.data.frame(world_bank %>% select(iso3 = iso3c, years = date, GDP_WB = NY.GDP.PCAP.KD))
+
+climate_conflict <- climate_conflict %>% left_join(world_bank_GDP, by = c("iso3", "years"))
+view(climate_conflict)
+
+view(climate_conflict[is.na(climate_conflict$GDP_WB) & climate_conflict$years <= 2002,]) #some unobserved observations (76) for countries where there's NA in burke data too !
+
+## running the CRU data over the wrld_simpl data from maptools package
+
+data(wrld_simpl)
+
+#get the location for the grid cells in tmp dataframe
+
+loc_tmps2 <- tmp_pts %over% wrld_simpl
+dim(na.omit(loc_tmps2))
+summary(loc_tmps2)
+
+##merging the temperature (incl. lon +lat) with the country codes
+
+str(loc_tmps2)
+head(na.omit(loc_tmps2))
+
+full_tmp2 <- bind_cols(loc_tmps2, tmp_redafr_df)
+dim(full_tmp2)
+#delete obs. with either no tmp-data or not defined for an african country
+
+full_tmp2 <- na.omit(full_tmp2)
+dim(full_tmp2)
+head(full_tmp2)
+
+#NAME_0 is unnecessary, and we won't need lon and lat anymore
+
+full_tmp2[1:2] <- NULL
+full_tmp2[2:11] <- NULL
+dim(full_tmp2)
+dim(full_tmp) # same ncols
+
+## the temperature is first averaged over the grid cells in a country, then over the month of a year
+# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+
+#averaging over cells in country
+
+country_tmp2 <- aggregate(full_tmp2[2:ncol(full_tmp)], list(full_tmp2$ISO3), mean)
+names(country_tmp2)[1] <- "iso3"
+country_tmp2
+
+# restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
+
+country_tmp_num2 <- subset(country_tmp2, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
+tmp_vec2 <- as.vector(t(country_tmp_num2))
+length(tmp_vec2)
+iso3 <- subset (country_tmp2, select = iso3)
+iso3 <- as.vector(t(iso3))
+iso3rep <- unlist(rep(iso3,each = ncol(full_tmp2)-1))  #countrycodes for all the 264 obs. of tmp per country (12m*22y)
+summary(iso3rep)
+iso3rep
+colnames1 <- colnames(country_tmp_num2)
+
+country_tmp2 <- data.frame(iso3rep,colnames1,tmp_vec2, stringsAsFactors = FALSE) 
+
+colnames(country_tmp2) <- c("iso3","months", "tmp") 
+summary(country_tmp2)
+dim(country_tmp2)
+# calculate yearly data
+
+country_tmp_ann2 <- country_tmp2 %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(tmp=mean(tmp))
+
+dim(country_tmp_ann2)
+table(country_tmp_ann2$years)
+table(country_tmp_ann2$iso3)
+
+# create lag, lead and quadratic term
+
+country_tmp_ann2 <- country_tmp_ann2 %>% mutate(tmp_lag = dplyr::lag(tmp), 
+                                              tmp_lead = dplyr::lead(tmp),
+                                              tmp_square = tmp^2,
+                                              tmp_lag_square = tmp_lag^2)
+
+climate_conflict <- climate_conflict %>% left_join(country_tmp_ann2, by = c("iso3", "years"))
+##now tmp.x is the temperature averaged over GADM and tmp.y is temperature averaged over wrld_smple
+
+
+loc_pre2 <- pre_pts %over% wrld_simpl
+dim(na.omit(loc_pre2))
+summary(loc_pre2)
+
+##merging the temperature (incl. lon +lat) with the country codes
+
+str(loc_pre2)
+head(na.omit(loc_pre2))
+
+full_pre2 <- bind_cols(loc_pre2, pre_redafr_df)
+dim(full_pre2)
+#delete obs. with either no pre-data or not defined for an african country
+
+full_pre2 <- na.omit(full_pre2)
+dim(full_pre2)
+head(full_pre2)
+
+#NAME_0 is unnecessary, and we won't need lon and lat anymore
+
+full_pre2[1:2] <- NULL
+full_pre2[2:11] <- NULL
+dim(full_pre2)
+dim(full_pre) # same ncols
+
+## the temperature is first averaged over the grid cells in a country, then over the month of a year
+# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+
+#averaging over cells in country
+
+country_pre2 <- aggregate(full_pre2[2:ncol(full_pre)], list(full_pre2$ISO3), mean)
+names(country_pre2)[1] <- "iso3"
+country_pre2
+
+# restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
+
+country_pre_num2 <- subset(country_pre2, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
+pre_vec2 <- as.vector(t(country_pre_num2))
+length(pre_vec2)
+iso3 <- subset (country_pre2, select = iso3)
+iso3 <- as.vector(t(iso3))
+iso3rep <- unlist(rep(iso3,each = ncol(full_pre2)-1))  #countrycodes for all the 264 obs. of pre per country (12m*22y)
+summary(iso3rep)
+iso3rep
+colnames1 <- colnames(country_pre_num2)
+
+country_pre2 <- data.frame(iso3rep,colnames1,pre_vec2, stringsAsFactors = FALSE) 
+
+colnames(country_pre2) <- c("iso3","months", "pre") 
+summary(country_pre2)
+dim(country_pre2)
+# calculate yearly data
+
+country_pre_ann2 <- country_pre2 %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(pre=mean(pre))
+
+dim(country_pre_ann2)
+table(country_pre_ann2$years)
+table(country_pre_ann2$iso3)
+
+# create lag, lead and quadratic term
+
+country_pre_ann2 <- country_pre_ann2 %>% mutate(pre_lag = dplyr::lag(pre), 
+                                                pre_lead = dplyr::lead(pre),
+                                                pre_square = pre^2,
+                                                pre_lag_square = pre_lag^2)
+
+climate_conflict <- climate_conflict %>% left_join(country_pre_ann2, by = c("iso3", "years"))
+## same as for tmp .. pre.x for GADM overlay and pre.y for wrld_smple
+
+### robustness regressions
+
+# i will add R_ to the models to refer to robustness
+
+climate_conflict$years <- as.numeric(climate_conflict$years) #need the numeric value of years for interaction term
+
+#create table 1
+R_table1_model1 <- lm(conflict ~ tmp.y + tmp_lag.y + factor(iso3)*years,
+                    data = climate_conflict)
+R_table1_model2 <- lm(conflict ~ tmp.y + tmp_lag.y + pre.y + pre_lag.y + factor(iso3)*years,
+                    data = climate_conflict)
+R_table1_model3 <- lm(conflict ~ tmp.y + tmp_lag.y + pre.y + pre_lag.y + GDP_WB + polity2_2018 +factor(iso3)*years,
+                    data = climate_conflict)
+
+summary(R_table1_model1)
+
+coef(R_table1_model1)[1:3]
+coef(table1_model1)[1:3]
+
+coef(R_table1_model2)[1:3]
+coef(table1_model2)[1:3]
+coef(R_table1_model3)[1:3]
+coef(table1_model3)[1:3]
+
+# small difference !!
+
+## let's see what happens when we use an alternative set of countries, meaning we add some ! 
+
+
+iso3afralternative <- c("GNB", "GMB", "MLI", "SEN", "BEN", "MRT", "NER", "CIV", "GIN",
+                        "BFA", "LBR", "SLE", "GHA", "TGO", "CMR", "NGA", "GAB","CAF",
+                        "TCD", "COG", "COD", "UGA", "KEN", "TZA", "BDI", "RWA", 
+                        "SOM","DJI","ETH","AGO","MOZ","ZMB","ZWE","MWI","ZAF",
+                        "NAM","LSO","BWA","SWZ","MDG","SDN",
+                        "DZA", "CPV", "COM", "EGY", "GNQ", "ERI", "LBY", "MUS", "SHN", "STP", "SYC", "TUN") #this last row are the new ones
+
+iso3afralternative[!iso3afralternative %in% iso3afr] # these are the new ones
+
+
+#is there any iso code that's defined for our african country vector but not in gadmshape? # first step using the new african countryset
+
+iso3afralternative[!iso3afralternative %in% gadmiso]
+
+#answer is no ! :) 
+
+# these are our new gadmshape polygons including the new countries
+
+gadmshape0afralternative <- gadmshape0[gadmshape0$GID_0 %in% iso3afralternative,]
+
+#get the location for the grid cells in tmp dataframe
+tmp_coords <- cbind(tmp_red_df$lon, tmp_red_df$lat) # this is the climate df including all countries
+tmp_pts <- SpatialPoints(coords = tmp_coords, proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+tmp_pts
+
+loc_tmps <- tmp_pts %over% gadmshape0afralternative
+dim(na.omit(loc_tmps))
+summary(loc_tmps)
+
+##merging the temperature (incl. lon +lat) with the country codes
+
+str(loc_tmps)
+str(tmp_redafr_df)
+head(na.omit(loc_tmps))
+
+full_tmp <- bind_cols(loc_tmps, tmp_red_df)
+dim(full_tmp)
+
+#delete obs. with either no tmp-data or not defined for an african country
+
+full_tmp <- na.omit(full_tmp)
+dim(full_tmp)
+head(full_tmp)
+
+#NAME_0 is unnecessary, and we won't need lon and lat anymore
+
+full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
+
+
+## the temperature is first averaged over the grid cells in a country, then over the month of a year
+# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+
+#averaging over cells in country
+
+country_tmp <- aggregate(full_tmp[2:ncol(full_tmp)], list(full_tmp$GID_0), mean)
+names(country_tmp)[1] <- "iso3"
+country_tmp
+
+# restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
+
+country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
+tmp_vec1 <- as.vector(t(country_tmp_num))
+length(tmp_vec1)
+iso3 <- subset (country_tmp, select = iso3)
+iso3 <- as.vector(t(iso3))
+iso3rep <- unlist(rep(iso3,each = ncol(full_tmp)-1))  #countrycodes for all the 264 obs. of tmp per country (12m*22y)
+summary(iso3rep)
+iso3rep
+colnames1 <- colnames(country_tmp_num)
+
+country_tmp <- data.frame(iso3rep,colnames1,tmp_vec1, stringsAsFactors = FALSE) 
+
+colnames(country_tmp) <- c("iso3","months", "tmp") 
+summary(country_tmp)
+dim(country_tmp)
+# calculate yearly data
+
+country_tmp_ann <- country_tmp %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(tmp=mean(tmp))
+
+dim(country_tmp_ann)
+table(country_tmp_ann$years)
+table(country_tmp_ann$iso3)
+
+# create lag, lead and quadratic term
+
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp), 
+                                              tmp_lead = dplyr::lead(tmp),
+                                              tmp_square = tmp^2,
+                                              tmp_lag_square = tmp_lag^2)
+
+### temperature finished
+
+write_csv(country_tmp_ann, "C:/R/bachelorproject/csv_files/country_tmp_ann_alternativecountryset.csv")
+
+#get the location for the grid cells in pre dataframe
+pre_coords <- cbind(pre_red_df$lon, pre_red_df$lat) # this is the climate df including all countries
+pre_pts <- SpatialPoints(coords = pre_coords, proj4string = CRS("+proj=longlat +datum=WGS84 +no_defs"))
+pre_pts
+
+loc_pre <- pre_pts %over% gadmshape0afralternative
+dim(na.omit(loc_pres))
+summary(loc_pre)
+
+##merging the temperature (incl. lon +lat) with the country codes
+
+str(loc_pre)
+head(na.omit(loc_pre))
+
+full_pre <- bind_cols(loc_pre, pre_red_df)
+dim(full_pre)
+
+#delete obs. with either no pre-data or not defined for an african country
+
+full_pre <- na.omit(full_pre)
+dim(full_pre)
+head(full_pre)
+
+#NAME_0 is unnecessary, and we won't need lon and lat anymore
+
+full_pre <- full_pre %>% select(-NAME_0, -lon, -lat)
+
+
+## the temperature is first averaged over the grid cells in a country, then over the month of a year
+# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+
+#averaging over cells in country
+
+country_pre <- aggregate(full_pre[2:ncol(full_pre)], list(full_pre$GID_0), mean)
+names(country_pre)[1] <- "iso3"
+country_pre
+
+# restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
+
+country_pre_num <- subset(country_pre, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
+pre_vec1 <- as.vector(t(country_pre_num))
+length(pre_vec1)
+iso3 <- subset (country_pre, select = iso3)
+iso3 <- as.vector(t(iso3))
+iso3rep <- unlist(rep(iso3,each = ncol(full_pre)-1))  #countrycodes for all the 264 obs. of pre per country (12m*22y)
+summary(iso3rep)
+iso3rep
+colnames1 <- colnames(country_pre_num)
+
+country_pre <- data.frame(iso3rep,colnames1,pre_vec1, stringsAsFactors = FALSE) 
+
+colnames(country_pre) <- c("iso3","months", "pre") 
+summary(country_pre)
+dim(country_pre)
+# calculate yearly data
+
+country_pre_ann <- country_pre %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(pre=mean(pre))
+
+dim(country_pre_ann)
+table(country_pre_ann$years)
+table(country_pre_ann$iso3)
+
+# create lag, lead and quadratic term
+
+country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre), 
+                                              pre_lead = dplyr::lead(pre),
+                                              pre_square = pre^2,
+                                              pre_lag_square = pre_lag^2)
+
+### precipitation finished
+
+#write into file
+
+write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann_alternativecountryset.csv")
+
+### import conflict data
+
+xlsurl <- "https://www.prio.org/Global/upload/CSCW/Data/UCDP/2008/MainConflictTable.xls"
+xlspath <- "./data/conflict/"
+xlsname <- "MainConflictTable.xls"
+xlsfname <- paste(xlspath, xlsname, sep = "")
+
+if(!file.exists(xlsfname)) {
+  
+  download.file(xlsurl, xlsfname, mode = "wb")
+}
+
+conflict <- read_xls(xlsfname)
+
+## filter down to relevant data
+
+#delete obs. not between 1981 and 2006
+
+conflict <- conflict %>% filter(YEAR >= 1979 & YEAR <=2006)
+
+conflict
+
+#duplicate the rows which have multiple locations 
+
+conflict <- cSplit(conflict, "SideA", sep = ",", direction = "long", type.convert = "as.character")
+
+#rename and define the incidence of conflict as conflict in the countries territory -> this seems to be what burke et al. did
+
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
+# we use the location as the indice for a war , not e.g. SideA indicator in PRIO dataset
+
+conflict <- conflict %>% rename(countryname = SideA)
+
+#get countrynames from burke
+
+##ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 144.
+
+africancountries <- data.frame(iso3 = iso3afralternative,
+                               countryname = c("Guinea-Bissau", 
+                                               "Gambia, The", 
+                                               "Mali", 
+                                               "Senegal", 
+                                               "Benin", 
+                                               "Mauritania", 
+                                               "Niger", 
+                                               "Cote d'Ivoire", 
+                                               "Guinea", 
+                                               "Burkina Faso", 
+                                               "Liberia", 
+                                               "Sierra Leone", 
+                                               "Ghana", 
+                                               "Togo" ,
+                                               "Cameroon", 
+                                               "Nigeria", 
+                                               "Gabon", 
+                                               "Central African Republic", 
+                                               "Chad", 
+                                               "Congo, Republic of", 
+                                               "Congo, Dem. Rep.", 
+                                               "Uganda", 
+                                               "Kenya", 
+                                               "Tanzania", 
+                                               "Burundi",
+                                               "Rwanda", 
+                                               "Somalia", 
+                                               "Djibouti", 
+                                               "Ethiopia", 
+                                               "Angola", 
+                                               "Mozambique", 
+                                               "Zambia", 
+                                               "Zimbabwe", 
+                                               "Malawi", 
+                                               "South Africa", 
+                                               "Namibia", 
+                                               "Lesotho", 
+                                               "Botswana", 
+                                               "Swaziland", 
+                                               "Madagascar", 
+                                               "Sudan",
+                                               "Algeria",
+                                               "Cape Verde",
+                                               "Comoros",
+                                               "Egypt",
+                                               "Equatorial Guinea",
+                                               "Eritrea",
+                                               "Libyan Arab Jamahiriya",
+                                               "Mauritius",
+                                               "Saint Helena, Ascension and Tristan da Cunha",
+                                               "Sao Tome and Principe",
+                                               "Seychelles",
+                                               "Tunisia"
+                                               ),
+                               stringsAsFactors = FALSE) #these are from the original replication analytic data
+
+
+#let's see which countries are in conflict table that we didn't define
+
+unique(conflict$countryname[!conflict$countryname %in% africancountries$countryname]) #are in PRIO but not in our african countryset
+
+#the result are these (narrowed to african countries) , which might have been just different spelled or defined in burke dataset: 
+#c( "Yemen (Arab Republic of Yemen)", "Democratic Republic of Congo (Zaire)", "Morocco", "Mozambique", "Gambia", 
+#   "Democratic Republic of Yemen", "People's Republic of Yemen", "Lybia", "Comoros", "Algeria", "Egypt", "Congo", "Cote D'Ivoire") 
+
+#checking the other way around
+africancountries$countryname[!africancountries$countryname %in% conflict$countryname]
+
+#result : "Gambia, The" -->  relates to "Gambia" 
+#         "Cote d'Ivoire" -->  relates to "Cote D'Ivoire"
+#         "Congo, Dem. Rep." --> relates to "Democratic Republic of Congo (Zaire)"
+#         "Zambia" --> not recorded in PRIO
+#         "Namibia" --> no war recorded in PRIO for relevant time period
+#         "Madagascar" --> no war recorded in PRIO for relevant time period
+#         "Benin" --> not recorded in PRIO
+#         "Gabon" --> not recorded in PRIO
+#         "Tanzania" --> no war recorded in PRIO for relevant time period
+#         "zimbabwe" -->  relates to "Zimbabwe (Rhodesia)"
+#         "Botswana" --> no war recorded in PRIO for relevant time period
+#         "Mauritania" --> no war recorded in PRIO for relevant time period
+#         "Congo, Republic of" --> relates to "Congo"? different war record in both tables
+#         "Malawi" --> not recorded in PRIO
+#         "Swaziland" --> not recorded in PRIO
+#         "Cape Verde" --> no war recorded
+#         "Seycheles" --> no war recorded
+#         "Saint Helena... " --> no war recorded
+#         "Sao Tome" --> no war recorded
+#         "Lybian Arab Jamahiriya" --> no war recorded
+#         "Madagascar" --> no war recorded
+#let's redefine (we redefine it in the conflict table for easier comparability to original results)
+
+conflict$countryname <- recode(conflict$countryname,
+                               "Gambia" = "Gambia, The",
+                               "Cote D'Ivoire" = "Cote d'Ivoire", 
+                               "Democratic Republic of Congo (Zaire)" = "Congo, Dem. Rep.",
+                               "Zimbabwe (Rhodesia)" = "Zimbabwe", 
+                               "Congo" = "Congo, Republic of" )
+
+africancountries$countryname[!africancountries$countryname %in% conflict$countryname]
+
+
+#subset conflict data
+##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 438.
+#if changing the variable defintion for conflict, e.g. not being location but SideA, then needs to be changed here too.
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
+#in addition to using location , we require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
+conflict <- conflict %>% 
+  filter(countryname %in% africancountries$countryname & Int == 2) %>% 
+  select(countryname, YEAR)
+
+#delete duplicates
+#ANALYTICAL CHOICE MADE OF TYPE VARIABLE DEFINITION. TREAT COUNTRIES WITH ONE CONFLICT SAME AS WITH MULTIPLE. FIRST RECORDED HERE.
+
+conflict <- conflict %>% distinct()
+
+#make dataframes ready for merger
+
+conflict <- left_join(conflict, africancountries, by = c("countryname")) #create iso3 for countries
+conflict <- conflict %>% rename("years" = "YEAR")
+conflict[,2] <- as.character(conflict[,2])
+conflict$conflict <- 1
+
+africancountriesrep <- data.frame(iso3 = rep(africancountries$iso3, each = length(years1)), 
+                                  countryname = rep(africancountries$countryname, each = length(years1)), 
+                                  years = as.character(years1), 
+                                  stringsAsFactors = F)
+
+conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "years", "iso3"))
+
+###import of conflict finished for now
+
+###merge tmp, pre and conflict
+
+climate_conflict_alternative <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join, by = c("iso3", "years"))
+
+climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
+
+view(climate_conflict)
+
+
+view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
+
+# because of missing climate data, the data has been rearranged.. sort 
+
+climate_conflict_alternative <- climate_conflict_alternative %>% arrange(iso3, years)
+#create conflict onset variable
+
+conflict_onset_rows <- which(climate_conflict_alternative$conflict == 1 & dplyr::lag(climate_conflict_alternative$conflict)==0 & dplyr::lag(climate_conflict_alternative$countryname) == climate_conflict_alternative$countryname) #creates rowIDs where conflict onsets
+climate_conflict_alternative$conflict_onset <- 0
+climate_conflict_alternative[conflict_onset_rows,]$conflict_onset <- 1 
+
+#ANALYITAL CHOICE OF TYPE : VARIABLE DEFINITION. FIRST RECORDED HERE.
+# we define onset variable "as missing if there was an ongoing civil war that began in an earlier year" (cited by manual)
+
+climate_conflict_alternative$conflict_onset[climate_conflict_alternative$conflict == 1 & climate_conflict_alternative$conflict_onset == 0] <- NA
+
+
+climate_conflict_alternative <- climate_conflict_alternative %>% filter(!years == 1979:1980) #only needed 1979 and 1980 to create the lag, as stated above
+
+### write csv
+
+write_csv(climate_conflict_alternative,"./csv_files/climate_conflict_alternativecountryset.csv")
+
+##merge with control data
+##GDP data
+
+climate_conflict_alternative <- left_join(climate_conflict_alternative, pwt6.2, by = c("iso3", "years"))
+
+table(is.na(climate_conflict_alternative$gdp))#244 missing values
+
+
+view(climate_conflict_alternative[is.na(climate_conflict_alternative$gdp) & climate_conflict_alternative$years <= 2002,]) #Angola , plus now Lybia and South Sudan
+
+##Polity IV data 
+
+climate_conflict_alternative <- left_join(climate_conflict_alternative, polityjoin, by = c("iso3", "years")) ## we have one more obs. now .. what happened there?
+table(climate_conflict_alternative$countryname) #ethiopia has 27 obs. instead of 26
+
+#looking that up in the polityIV table shows they apparently changed the countrycode in 1993 and have two observations for that year
+#quick wikipedia search shows they got a new constitution in 1994, probably has something to do with that
+#it's behind my scope to decide which one is better.. but it changed only marginaly from 0 to 1 
+#the authors decided to use the obs. with the value 0 (for unclear reason, but they were probably indifferent in their choice)
+#ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
+
+climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Ethiopia" & climate_conflict_alternative$years == 1993 & climate_conflict_alternative$polity2_2018 == 1),]
+
+
+
+table(is.na(climate_conflict_alternative$polity2_2018)) #321 missing values
+polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_2018),]
+view(polityNA) #most of the new countries
+
+##
+
+write_csv(climate_conflict_alternative,"./csv_files/climate_conflict_alternativecountryset.csv")
+
+
+### adjust the constructed data table so that it matches the original one 
+
+
+## delete country-year observations that are missing in original replication files
+## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. FIRST RECORDED HERE.
+# I do not see the reason behind removing these country-year observation, which is why I will include them in a robustness test later on.
+
+climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Angola" & climate_conflict_alternative$years %in% 2000:2006),]
+climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Namibia" & climate_conflict_alternative$years %in% 1981:1990),]
+
+## assigning NA to gdp in djibouti (all years) and liberia (1992 - 2002), and Lesotho
+# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
+# reason unclear !
+
+climate_conflict_alternative[climate_conflict_alternative$years >= 1992 & climate_conflict_alternative$countryname == "Liberia", ]$gdp <- NA
+climate_conflict_alternative[climate_conflict_alternative$countryname == "Djibouti",]$gdp <- NA
+climate_conflict_alternative[climate_conflict_alternative$countryname == "Lesotho",]$gdp <- NA
+
+## assinging 0 instead of NA to conflict_onset var. in Congo, Dem. Rep, 1998:2000
+# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
+
+climate_conflict_alternative[climate_conflict_alternative$years %in% 1998:2000 & climate_conflict_alternative$countryname == "Congo, Dem. Rep.",]$conflict_onset <- NA
+
+# relevant time period
+
+climate_conflict_alternative <- climate_conflict_alternative %>% filter(years <= 2002)
+
+## check completeness óf data
+
+view(climate_conflict_alternative[rowSums(is.na(climate_conflict_alternative)) >0 & climate_conflict_alternative$years <= 2002, ])
+# some of the new countries have no climate data !!
+
+
+###regression
+climate_conflict_alternative$years <- as.numeric(climate_conflict_alternative$years) #need the numeric value of years for interaction term
+
+
+#create table 1
+R2_table1_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
+                    data = climate_conflict_alternative)
+R2_table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                    data = climate_conflict_alternative)
+R2_table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2_2018 +factor(iso3)*years,
+                    data = climate_conflict_alternative)
+
+
+coef(R2_table1_model1)[1:3]
+coef(table1_model1)[1:3]
+
+coef(R2_table1_model2)[1:5]
+coef(table1_model2)[1:5]
+coef(R2_table1_model3)[1:7]
+coef(table1_model3)[1:7]
+
