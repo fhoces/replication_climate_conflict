@@ -6,6 +6,7 @@ rm(list = ls())
 
 setwd("C:/R/bachelorproject")
 
+options(scipen = 999)
 #load packages
 package_load <- function(x) {
   for (i in x) {
@@ -1325,6 +1326,7 @@ country_tmp_ann2 <- country_tmp_ann2 %>% mutate(tmp_lag = dplyr::lag(tmp),
                                               tmp_square = tmp^2,
                                               tmp_lag_square = tmp_lag^2)
 
+
 climate_conflict <- climate_conflict %>% left_join(country_tmp_ann2, by = c("iso3", "years"))
 ##now tmp.x is the temperature averaged over GADM and tmp.y is temperature averaged over wrld_smple
 
@@ -1515,6 +1517,16 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_lag = dplyr::lag(tmp),
                                               tmp_lead = dplyr::lead(tmp),
                                               tmp_square = tmp^2,
                                               tmp_lag_square = tmp_lag^2)
+# calculate diff 
+
+# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 315.
+# we define climate difference in year t as difference between climate in year t and year t-1
+# this is assumed to be the meassure, even tho controlling in the original replication file doesn't confirm this 100%, maybe due to rouding error
+
+#diff
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
+                                              tmp_diff_lag = dplyr::lag(tmp_diff))
+
 
 ### temperature finished
 
@@ -1526,7 +1538,7 @@ pre_pts <- SpatialPoints(coords = pre_coords, proj4string = CRS("+proj=longlat +
 pre_pts
 
 loc_pre <- pre_pts %over% gadmshape0afralternative
-dim(na.omit(loc_pres))
+dim(na.omit(loc_pre))
 summary(loc_pre)
 
 ##merging the temperature (incl. lon +lat) with the country codes
@@ -1588,6 +1600,15 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_lag = dplyr::lag(pre),
                                               pre_lead = dplyr::lead(pre),
                                               pre_square = pre^2,
                                               pre_lag_square = pre_lag^2)
+# calculate diff 
+
+# ANALTYCAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 315.
+# we define climate difference in year t as difference between climate in year t and year t-1
+# this is assumed to be the meassure, even tho controlling in the original replication file doesn't confirm this 100%, maybe due to rouding error
+
+#diff
+country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
+                                              pre_diff_lag = dplyr::lag(pre_diff))
 
 ### precipitation finished
 
@@ -1768,9 +1789,9 @@ conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "yea
 
 climate_conflict_alternative <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join, by = c("iso3", "years"))
 
-climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
+climate_conflict_alternative$conflict[is.na(climate_conflict_alternative$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
 
-view(climate_conflict)
+view(climate_conflict_alternative)
 
 
 view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
@@ -1884,3 +1905,28 @@ coef(table1_model2)[1:5]
 coef(R2_table1_model3)[1:7]
 coef(table1_model3)[1:7]
 
+
+#create table S4 - conflict onset
+
+R2_tableS4_model1 <- lm(conflict_onset ~ tmp + tmp_lag + factor(iso3)*years,
+                      data = climate_conflict_alternative)
+R2_tableS4_model2 <- lm(conflict_onset ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
+                      data = climate_conflict_alternative)
+R2_tableS4_model3 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + factor(iso3)*years,
+                      data = climate_conflict_alternative)
+R2_tableS4_model4 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3)*years,
+                      data = climate_conflict_alternative)
+
+coef(R2_tableS4_model1)[1:3]
+coef(tableS4_model1)[1:3]
+
+coef(R2_tableS4_model2)[1:5]
+coef(tableS4_model2)[1:5] 
+
+coef(R2_tableS4_model3)[1:3]
+coef(tableS4_model3)[1:3]
+
+coef(R2_tableS4_model4)[1:5]
+coef(tableS4_model4)[1:5]
+
+table(climate_conflict_alternative$conflict_onset)
