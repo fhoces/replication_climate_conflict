@@ -131,7 +131,7 @@ names(tmp_all_df)[3:ncol(tmp_all_df)] <- paste(rep(years, each=12), rep(month, t
 str(tmp_all_df)
 
 #drop irrelevant columns , leaving only 1979 - 2006
-#ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
+#ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. FIRST RECORDED HERE.
 #I include years 1979 - 1980 to compute climate lags and climate_diff lags. 
 #From the original data, I can not see how they computed the lag variable for 1981, but I assume this is how they did it , too.
 
@@ -185,7 +185,7 @@ str(countrypolygons.df)
 gadmiso <- as.character(countrypolygons.df$GID_0)
 #delete non-african countries
 
-#ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME HERE.
+#ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST HERE.
 #analytical choice: defining african countries as the ones that are existent in the analytical dataset in the original replication files, which are 43 in total . 
 #as of yet I do not know why this selection was made. 
 #another choice could be: defining african countries as members of UN, which are 54, 
@@ -272,7 +272,6 @@ full_tmp <- full_tmp %>% select(-NAME_0, -lon, -lat)
 
   
 ## the temperature is first averaged over the grid cells in a country, then over the month of a year
-# ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED HERE.
 
 #averaging over cells in country
 
@@ -281,7 +280,7 @@ names(country_tmp)[1] <- "iso3"
 country_tmp
 
 # restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RESHAPING. FIRST RECORDED HERE.
 country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 tmp_vec1 <- as.vector(t(country_tmp_num))
 length(tmp_vec1)
@@ -329,7 +328,7 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
 # during the years 1981 - 2002. The authors seem to have been using a different time period(see complementary script: diff_dev_check.R)
 # but as I'm using another dataset version I can not be certain which.
 
-country_tmp_ann <- country_tmp_ann %>% filter(years >= 1981, years <= 2002) # see above analytical choice of calculating trend
+country_tmp_ann <- country_tmp_ann %>% filter(years >= 1980, years <= 2002) # see above analytical choice of calculating trend
 country_tmp_ann$years <- as.numeric(country_tmp_ann$years) #to calculate model correctly (instead of having regressor for each year when charactar)
 
 #calculate a linear tmp model for each country
@@ -350,7 +349,7 @@ country_tmp_ann <- country_tmp_ann %>%
 
 country_tmp_ann$years <- as.character(country_tmp_ann$years) # convert back to character for later merge
 
-country_tmp_ann <- country_tmp_ann %>% mutate(tmp_difftrend = tmp - pred_lin_tmp)
+country_tmp_ann <- country_tmp_ann %>% mutate(tmp_difftrend = tmp - pred_lin_tmp, tmp_difftrend_lag = dplyr::lag(tmp_difftrend))
 country_tmp_ann <- country_tmp_ann %>% select(-model_lin_tmp, -pred_lin_tmp) 
 
 view(country_tmp_ann)
@@ -422,7 +421,7 @@ names(pre_all_df)[3:ncol(pre_all_df)] <- paste(rep(years, each=12), rep(month, t
 str(pre_all_df)
 
 #drop irrelevant columns , leaving only 1979-2002
-#ANALYTICAL CHOICE OF TYPE PROCESSING - OTHERS. FIRST RECORDED IN LINE 133
+#ANALYTICAL CHOICE OF TYPE DATA SUBSETTING. FIRST RECORDED IN LINE 134.
 
 pre_red_df <- pre_all_df %>% select(!!removecols) #_red_ stands for reduced, we now have a dataframe of the tmp at the time we need: 1979-2002
 head(tmp_red_df)
@@ -483,7 +482,7 @@ names(country_pre)[1] <- "iso3"
 country_pre
 
 # restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RESHAPING. FIRST RECORDED HERE.
 country_pre_num <- subset(country_pre, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 pre_vec1 <- as.vector(t(country_pre_num))
 length(pre_vec1)
@@ -543,7 +542,7 @@ country_pre_ann <- country_pre_ann %>%
 
 country_pre_ann$years <- as.character(country_pre_ann$years) #convert back to character
 
-country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre)
+country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre, pre_difftrend_lag = dplyr::lag(pre_difftrend))
 country_pre_ann <- country_pre_ann %>% select(-model_lin_pre, -pred_lin_pre) 
 
 
@@ -554,9 +553,9 @@ view(country_pre_ann)
 write_csv(country_pre_ann, "C:/R/bachelorproject/csv_files/country_pre_ann.csv")
 
 
-### CRU precipitation finished
+###CRU precipitation finished
 
-### import GPCP precipitation
+##### import GPCP precipitation
 
 ## the method suggested below does not work . we have too little amount of grids - not sure why
 ## computing with the below method does result in only half countries receiving information, 
@@ -770,9 +769,9 @@ if(!file.exists(xlsfname)) {
 
 conflict <- read_xls(xlsfname)
 
-## filter down to relevant data
+## filter down to relevant data. ANALYTICAL CHOICE OF TYPE DATA SUBSETTING. FIRST RECORDED IN LINE 134.
 
-#delete obs. not between 1981 and 2006
+# delete obs. not between 1981 and 2006
 
 conflict <- conflict %>% filter(YEAR >= 1979 & YEAR <=2006)
 
@@ -794,7 +793,7 @@ conflict <- conflict %>% rename(countryname = SideA)
 
 #get countrynames from burke
 
-##ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 144.
+##ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 188.
 
 africancountries <- data.frame(iso3 = iso3afr,
                                countryname = c("Guinea-Bissau", 
@@ -881,10 +880,8 @@ africancountries$countryname[!africancountries$countryname %in% conflict$country
 
 
 #subset conflict data
-##ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 438.
-#if changing the variable defintion for conflict, e.g. not being location but SideA, then needs to be changed here too.
 #ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST HERE.
-#in addition to using location , we require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
+#in addition to using SideA , we require intensity to be 2 (meaning >1k deaths, like defined in supporting information)
 conflict <- conflict %>% 
   filter(countryname %in% africancountries$countryname & Int == 2) %>% 
   select(countryname, YEAR)
@@ -912,6 +909,7 @@ conflict <- right_join(conflict, africancountriesrep, by = c("countryname", "yea
 
 ###merge tmp, pre and conflict
 
+#ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(full_join, by = c("iso3", "years"))
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
@@ -924,7 +922,9 @@ view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
 # because of missing climate data, the data has been rearranged.. sort 
 
 climate_conflict <- climate_conflict %>% arrange(iso3, years)
-#create conflict onset variable
+
+# create conflict onset variable
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. IF THERE IS A CONFLICT IN ONE YEAR AND THERE WAS NO CONFLICT RECORDED IN THE YEAR BEFORE, CONFLICT_ONSET IS SET TO 0.
 
 conflict_onset_rows <- which(climate_conflict$conflict == 1 & dplyr::lag(climate_conflict$conflict)==0 & dplyr::lag(climate_conflict$countryname) == climate_conflict$countryname) #creates rowIDs where conflict onsets
 climate_conflict$conflict_onset <- 0
@@ -963,6 +963,8 @@ pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
 # I use rgdptt as the GDP meassure (see https://cran.r-project.org/web/packages/pwt/pwt.pdf for definition)
 pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
 pwt6.2$gdp <- pwt6.2$gdp/1000
+
+# ANALYITCAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
 
 table(is.na(climate_conflict$gdp))#132 missing values
@@ -971,6 +973,7 @@ table(is.na(climate_conflict$gdp))#132 missing values
 view(climate_conflict[is.na(climate_conflict$gdp) & climate_conflict$years <= 2002,]) #Angola -> like in original dataset
 
 ##Polity IV data 
+#ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
 
 politypath <- "./data/polity/"
 polityfname <- "p4v2007.xls"
@@ -1005,6 +1008,8 @@ polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
   select(years = year, iso3, polity2)
 polityjoin$years <- as.character(polityjoin$years)
 
+#ANALYTICAL CHOICE MADE OF TYPE DATA RE-SHAPING. COMBINING PREVIOUSLY GENERATED CLIMATE-CONFLICT DATA WITH POLITIC SCORE (JOINED BY ISO3 AND YEARS).
+
 climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## we have one more obs. now .. what happened there?
 table(climate_conflict$countryname) #ethiopia has 23 obs. instead of 22
 
@@ -1027,31 +1032,8 @@ view(polityNA) #Namibia politic score only starts in 1990
 write_csv(climate_conflict,"./csv_files/climate_conflict.csv")
 
 
-### adjust the constructed data table so that it matches the original one 
-
-
-## delete country-year observations that are missing in original replication files
-## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. FIRST RECORDED HERE.
-# I do not see the reason behind removing these country-year observation, which is why I will include them in a robustness test later on.
-
-climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Angola" & climate_conflict$years %in% 2000:2006),]
-climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Namibia" & climate_conflict$years %in% 1981:1990),]
-
-## assigning NA to gdp in djibouti (all years) and liberia (1992 - 2002), and Lesotho
-# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
-# reason unclear !
-
-climate_conflict[climate_conflict$years >= 1992 & climate_conflict$countryname == "Liberia", ]$gdp <- NA
-climate_conflict[climate_conflict$countryname == "Djibouti",]$gdp <- NA
-climate_conflict[climate_conflict$countryname == "Lesotho",]$gdp <- NA
-
-## assinging 0 instead of NA to conflict_onset var. in Congo, Dem. Rep, 1998:2000
-# ANALYTICAL CHOICE MADE OF TYPE OTHERS. FIRST RECORDED HERE.
-
-climate_conflict[climate_conflict$years %in% 1998:2000 & climate_conflict$countryname == "Congo, Dem. Rep.",]$conflict_onset <- NA
-
 # relevant time period
-
+# ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. 
 climate_conflict <- climate_conflict %>% filter(years <= 2002)
 
 ## check completeness óf data
@@ -1063,11 +1045,21 @@ view(climate_conflict[rowSums(is.na(climate_conflict)) >0 & climate_conflict$yea
 
 climate_conflict$years <- as.numeric(climate_conflict$years) #need the numeric value of years for interaction term
 
+#ANALYITCAL CHOICE OF TYPE REGRESSION FUNCTION.
+# we use linear regression model and the base R function lm() for all regressions! 
+
+# note : i define the var tmp, tmp_lag as main independent vars so won't mark them as controls.
 #create table 1
 table1_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
                     data = climate_conflict)
+
+#ANALYTICAL CHOICE OF TYPE CONTROLS.
+
 table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
                     data = climate_conflict)
+
+#ANALYTICAL CHOICE OF TYPE CONTROLS.
+
 table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 +factor(iso3)*years,
                     data = climate_conflict)
 
@@ -1106,27 +1098,46 @@ tableS2_model1 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*yea
 tableS2_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3) + years,
                      data = climate_conflict)
 
+#ANALYTICAL CHOICE OF TYPE CONTROLS.
+
 tableS2_model3 <- lm(conflict ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3)*years, 
                      data = climate_conflict)
+
+#ANALYTICAL CHOICE OF TYPE CONTROLS.
 
 tableS2_model4 <- lm(conflict ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3) + years,
                      data = climate_conflict)
 
+tableS2_model5 <- lm(conflict ~ tmp_difftrend + tmp_difftrend_lag + pre_difftrend + pre_difftrend_lag + factor(iso3)*years,
+                     data = climate_conflict)
+
+tableS2_model6 <- lm(conflict ~ tmp_difftrend + tmp_difftrend_lag + pre_difftrend + pre_difftrend_lag + factor(iso3) + years,
+                    data = climate_conflict)
 #create table S4
+#ANALYTICAL CHOICE OF TYPE TREATMENT OF MISSING VALUES. FIRST RECORDED HERE.
 
 tableS4_model1 <- lm(conflict_onset ~ tmp + tmp_lag + factor(iso3)*years,
                      data = climate_conflict)
 tableS4_model2 <- lm(conflict_onset ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*years,
                      data = climate_conflict)
+
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 1100.
+
 tableS4_model3 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + factor(iso3)*years,
                      data = climate_conflict)
+
+# ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 1105.
+
 tableS4_model4 <- lm(conflict_onset ~ tmp_diff + tmp_diff_lag + pre_diff + pre_diff_lag + factor(iso3)*years,
                      data = climate_conflict)
 
 #create table S5 
 
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
+
 tableS5_model1 <- lm(conflict ~ tmp + tmp_lag + tmp_lead + factor(iso3)*years,
                      data = climate_conflict)
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 tableS5_model2 <- lm(conflict ~ tmp + tmp_lag + tmp_lead + pre + pre_lag + pre_lead + factor(iso3)*years,
                      data = climate_conflict)
 
@@ -1135,11 +1146,17 @@ tableS5_model2 <- lm(conflict ~ tmp + tmp_lag + tmp_lead + pre + pre_lag + pre_l
 tableS6_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
                      data = climate_conflict)
 
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
+
 tableS6_model2 <- lm(conflict ~ tmp + tmp_lag + gdp + factor(iso3)*years,
                      data = climate_conflict)
 
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
+
 tableS6_model3 <- lm(conflict ~ tmp + tmp_lag + polity2 + factor(iso3)*years,
                      data = climate_conflict)
+
+#ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
 tableS6_model4 <- lm(conflict ~ tmp + tmp_lag + gdp + polity2 + factor(iso3)*years,
                      data = climate_conflict)
@@ -1295,7 +1312,7 @@ names(country_tmp2)[1] <- "iso3"
 country_tmp2
 
 # restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 283.
 country_tmp_num2 <- subset(country_tmp2, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 tmp_vec2 <- as.vector(t(country_tmp_num2))
 length(tmp_vec2)
@@ -1365,7 +1382,7 @@ names(country_pre2)[1] <- "iso3"
 country_pre2
 
 # restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 283.
 country_pre_num2 <- subset(country_pre2, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 pre_vec2 <- as.vector(t(country_pre_num2))
 length(pre_vec2)
@@ -1487,7 +1504,7 @@ names(country_tmp)[1] <- "iso3"
 country_tmp
 
 # restructuring the table -> we want the tmp information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 283.
 country_tmp_num <- subset(country_tmp, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 tmp_vec1 <- as.vector(t(country_tmp_num))
 length(tmp_vec1)
@@ -1570,7 +1587,7 @@ names(country_pre)[1] <- "iso3"
 country_pre
 
 # restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
-
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 283.
 country_pre_num <- subset(country_pre, select = -iso3) #need this subset with only the numerical values to use function ; _num stands for numerical
 pre_vec1 <- as.vector(t(country_pre_num))
 length(pre_vec1)
