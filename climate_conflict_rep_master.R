@@ -1,18 +1,18 @@
 ### master file - replication excercise of the paper "Warming increases the risk of civil war in Africa" ,
 ### using an updated climate dataset version, CRU 4.03
 
-
-
-## set up
-
-
 rm(list = ls())
-
 setwd("C:/R/bachelorproject")
-
 options(scipen = 999)
+subfolder_names <- c("analytical_data", "data")
 
-
+for (i in 1:length(subfolder_names)){
+  folder<-dir.create(paste0("./",subfolder_names[i]))
+}
+subfolder_names2 <- c("polity", "gadm", "conflict", "cru_data", "gpcp", "gdp")
+for (i in 1:length(subfolder_names2)){
+  folder<-dir.create(paste0("./data/",subfolder_names2[i]))
+}
 # load packages
 
 package_load <- function(x) {
