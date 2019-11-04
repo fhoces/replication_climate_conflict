@@ -1,8 +1,13 @@
 # Replication excercise
 
-replicate the output of the work "Warming increases the risk of civil war in Africa" by the authors Marshall B. Burke, Edward Miguel, Shanker Satyanath, John A. Dykema, and David B. Lobell
+### What is this rep for ? 
 
-compulsory OSF repository, including more files for replication and analytical assessment of the code:
+
+Replication of output of the work "Warming increases the risk of civil war in Africa" by the authors Marshall B. Burke, Edward Miguel, Shanker Satyanath, John A. Dykema, and David B. Lobell.
+
+Framework adapted from BITTS, documented at https://github.com/fhoces/ACRE.git. 
+
+Compulsory OSF repository, including more files for replication and analytical assessment of the code:
 
 https://osf.io/jxn5b/
 
