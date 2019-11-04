@@ -7,9 +7,15 @@ Replication of output of the work "Warming increases the risk of civil war in Af
 
 Framework adapted from BITTS, documented at https://github.com/fhoces/ACRE.git. 
 
-Compulsory OSF repository, including more files for replication and analytical assessment of the code:
+Complementary OSF repository, including more files for replication and analytical assessment of the code:
 
 https://osf.io/jxn5b/
+
+**NOTE:** Unfortunately downloading additional dataset from this link is compulsory for
+running the master file and receiving results. Download p4v2007 from order /data/polity/
+and store it under exact same subfolder combination in your working directory. 
+
+Aside from that only thing to change in the code to run it is, obviously, change WD.
 
 
 ### File overview
@@ -25,7 +31,7 @@ As of now, no replication of Tables 2 and Figures 1 and 2 , because not relevant
 Tables S3 and S7 have not been replicated yet because of complexity.
 
 Rough overview of the document: 
-- line 0 - 909: 	first part of the script is cleaning code, imports relevant data and makes it ready to use 
+- line 0 - 909: first part of the script is cleaning code, imports relevant data and makes it ready to use 
 - line 910 - 1087: 	creates models for replication of tables
 - line 1088 - 1946: robustness checks
 - line 1947 - end:	give out all models created
@@ -48,5 +54,5 @@ but also from the fact that I use different climate data (CRU 4.03 vs CRU 2.1).
 - [ ] more on modularity: replace magic numbers by variables at the top of the file (or seperate script - something like master_input_....R ?) to show the input
 - [ ] modularity on check_variables - create one file which checks all vars in an easily understandable way.
 - [ ] integrate CRU 2
-- [ ] working on tables S3 and S4
+- [ ] working on tables S3 and S7
 - [ ] more robustness checks.
