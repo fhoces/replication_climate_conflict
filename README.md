@@ -34,7 +34,7 @@ dataset in the original replication folder (downloadable at ... , I will ask for
 
 ### further work to do 
 
-- [] create project/master file manual
+- [x] create project/master file manual
 - [] simplifying of master file 
   - improving much needed modularity (and removes duplicate code)
   - removes duplicate code
