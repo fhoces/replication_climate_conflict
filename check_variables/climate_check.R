@@ -34,7 +34,7 @@ climate_conflict_original <- climate_conflict_original %>% select(country, year_
 
 # import our data
 
-mydata <- read_csv("./csv_files/climate_conflict.csv")
+mydata <- read_csv("./analytical_data/climate_conflict.csv")
 mydata <- mydata %>% select(countryname, years,
                             tmp, tmp_lag, tmp_lead, tmp_square,tmp_lag_square,
                             tmp_diff, tmp_diff_lag, tmp_difftrend,

@@ -1,4 +1,4 @@
-##check conflict variables
+ ##check conflict variables
 
 ##set up
 
@@ -33,7 +33,7 @@ climate_conflict_original <- climate_conflict_original %>% select(year_actual, c
 table(climate_conflict_original$year_actual)
 #import my constructed data
 
-conflict_check <- read_csv("./csv_files/climate_conflict.csv")
+conflict_check <- read_csv("./analytical_data/climate_conflict.csv")
 
 conflict_check <- conflict_check %>% select(years, countryname, conflict, conflict_onset )
 
@@ -95,7 +95,7 @@ setwd("C:/R/bachelorproject")
 library(tidyverse)
 
 
-mydata <- read_csv("./csv_files/climate_conflict.csv")
+mydata <- read_csv("./analytical_data/climate_conflict.csv")
 
 mydata <- mydata %>% select(countryname, years, conflict, conflict_onset)
 

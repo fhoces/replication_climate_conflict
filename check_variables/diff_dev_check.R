@@ -230,7 +230,7 @@ ggplot(devcheck, aes(pred_lin_pre, originaltrend_pre)) +
 
 rm(list =ls())
 
-mydata <- read_csv("./csv_files/climate_conflict.csv")
+mydata <- read_csv("./analytical_data/climate_conflict.csv")
 
 original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
 

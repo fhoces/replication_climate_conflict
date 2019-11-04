@@ -133,7 +133,7 @@ rm(list = ls())
 setwd("C:/R/bachelorproject")
 #my data
 
-my_climate_conflict <- read_csv("./csv_files/climate_conflict.csv") 
+my_climate_conflict <- read_csv("./analytical_data/climate_conflict.csv") 
 
 my_climate_conflict <- my_climate_conflict %>% select(years, countryname, polity2)
 
