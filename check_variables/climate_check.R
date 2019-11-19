@@ -115,14 +115,4 @@ view(climate_check %>% filter(pre_prec_dev < -0.4))
 ## Sudan has (for all years) a deviation bigger than 0.4 (in absolute values !)
 ## this perhaps comes from a different calculation method, previously manipulated data... really , could be a lot of reasons! 
 ## just have to keep that in mind, together with overall smaller precipitation values in our data
-
-## now look at GPCP
-
-ggplot(climate_check, aes(gpcp.x, gpcp.y)) +
-  geom_point(aes(colour = country))
-
-#this is a mess... something went horribly wrong
-
-summary(lm(gpcp.y ~ gpcp.x + factor(country)*year_actual,
-           data = climate_check))
            

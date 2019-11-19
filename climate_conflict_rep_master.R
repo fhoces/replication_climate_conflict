@@ -811,22 +811,22 @@ pwt6.2$year <- as.character(pwt6.2$year)
 pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
 
 # ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
-# I use rgdptt as the GDP meassure (see https://cran.r-project.org/web/packages/pwt/pwt.pdf for definition)
+# I use lagged rgdptt as the GDP meassure (see https://cran.r-project.org/web/packages/pwt/pwt.pdf for definition)
 
-pwt6.2 <- pwt6.2 %>% filter(year>= 1981, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
-
+pwt6.2 <- pwt6.2 %>% filter(year>= 1980, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
+pwt6.2$gdp_lag <- dplyr::lag(pwt6.2$gdp)
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED HERE.
 
-pwt6.2$gdp <- pwt6.2$gdp/1000
+pwt6.2$gdp_lag <- pwt6.2$gdp_lag/1000
 
 # ANALYITCAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
 climate_conflict <- left_join(climate_conflict, pwt6.2, by = c("iso3", "years"))
 
-table(is.na(climate_conflict$gdp)) # 132 missing values
+table(is.na(climate_conflict$gdp_lag)) # 132 missing values
 
 
-view(climate_conflict[is.na(climate_conflict$gdp) & climate_conflict$years <= 2002,]) # Angola -> like in original dataset
+view(climate_conflict[is.na(climate_conflict$gdp_lag) & climate_conflict$years <= 2002,]) # Angola -> like in original dataset
 
 ## Polity IV data 
 
@@ -867,14 +867,14 @@ uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) # 41 iso codes --> good
 ## using polity2 as meassure of political system.
 
 
-polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
+polityjoin <- polityjoin %>% filter(year >= 1980, year <= 2006) %>%
   select(years = year, iso3, polity2)
 polityjoin$years <- as.character(polityjoin$years)
-
+polityjoin$polity2_lag <- dplyr::lag(polityjoin$polity2)
 # ANALYTICAL CHOICE MADE OF TYPE DATA RE-SHAPING. COMBINING PREVIOUSLY GENERATED CLIMATE-CONFLICT DATA WITH POLITIC SCORE (JOINED BY ISO3 AND YEARS).
 
 climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) # we have one more obs. now .. what happened there?
-table(climate_conflict$countryname) # ethiopia has 23 obs. instead of 22
+table(climate_conflict$countryname) # ethiopia has 27 obs. instead of 26
 
 # looking that up in the polityIV table shows they apparently changed the countrycode in 1993 and have two observations for that year
 # quick wikipedia search shows they got a new constitution in 1994, probably has something to do with that
@@ -886,8 +886,8 @@ climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia
 
 
 
-table(is.na(climate_conflict$polity2)) # 9 missing values
-polityNA <- climate_conflict[is.na(climate_conflict$polity2),]
+table(is.na(climate_conflict$polity2_lag)) # 9 missing values
+polityNA <- climate_conflict[is.na(climate_conflict$polity2_lag),]
 view(polityNA) # Namibia politic score only starts in 1990
 
 ##
@@ -931,7 +931,7 @@ table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*year
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
-table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 +factor(iso3)*years,
+table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp_lag + polity2_lag +factor(iso3)*years,
                     data = climate_conflict)
 
 # create table S1
@@ -1046,22 +1046,22 @@ tableS6_model1 <- lm(conflict ~ tmp + tmp_lag + factor(iso3)*years,
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
-tableS6_model2 <- lm(conflict ~ tmp + tmp_lag + gdp + factor(iso3)*years,
+tableS6_model2 <- lm(conflict ~ tmp + tmp_lag + gdp_lag + factor(iso3)*years,
                      data = climate_conflict)
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
-tableS6_model3 <- lm(conflict ~ tmp + tmp_lag + polity2 + factor(iso3)*years,
+tableS6_model3 <- lm(conflict ~ tmp + tmp_lag + polity2_lag + factor(iso3)*years,
                      data = climate_conflict)
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
-tableS6_model4 <- lm(conflict ~ tmp + tmp_lag + gdp + polity2 + factor(iso3)*years,
+tableS6_model4 <- lm(conflict ~ tmp + tmp_lag + gdp_lag + polity2_lag + factor(iso3)*years,
                      data = climate_conflict)
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 932.
 
-tableS6_model5 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2 + factor(iso3)*years,
+tableS6_model5 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp_lag + polity2_lag + factor(iso3)*years,
                      data = climate_conflict)
 
 # create table S8
@@ -1101,19 +1101,19 @@ pwt9.1$year <- as.character(pwt9.1$year)
 # ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
 # defining GDP as real GDP at constant national prices
 
-pwt9.1 <- pwt9.1 %>% filter(year>= 1981, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9 = rgdpo)
-
+pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9 = rgdpo)
+pwt9.1$GDP_pwt9_lag <- dplyr::lag(pwt9.1$GDP_pwt9)
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
 
-pwt9.1$GDP_pwt9 <- pwt9.1$GDP_pwt9/1000
+pwt9.1$GDP_pwt9_lag <- pwt9.1$GDP_pwt9_lag/1000
 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
 climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
 
-table(is.na(climate_conflict$GDP_pwt9)) # 22 missing values
+table(is.na(climate_conflict$GDP_pwt9_lag)) # 22 missing values
 
-view(climate_conflict[is.na(climate_conflict$GDP_pwt9),]) # SOM
+view(climate_conflict[is.na(climate_conflict$GDP_pwt9_lag),]) # SOM
 
 
 ## Polity IV current dataset (2018)
@@ -1161,10 +1161,10 @@ uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) # 41 iso codes --> good
 ## ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 862.
 ## using polity2 as meassure of political system.
 
-polityjoin <- polityjoin %>% filter(year >= 1981, year <= 2006) %>%
+polityjoin <- polityjoin %>% filter(year >= 1980, year <= 2006) %>%
   select(years = year, iso3, polity2_2018 = polity2)
 polityjoin$years <- as.character(polityjoin$years)
-
+polityjoin$polity2_2018_lag <- dplyr::lag(polityjoin$polity2_2018)
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 874.
 
 climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
@@ -1176,9 +1176,9 @@ climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia
 
 
 
-view(climate_conflict[is.na(climate_conflict$polity2_2018),]) # 9 missing values for Namibia, same as in polityIV 2008
+view(climate_conflict[is.na(climate_conflict$polity2_2018_lag),]) # 9 missing values for Namibia, same as in polityIV 2008
 
-plot(climate_conflict$polity2, climate_conflict$polity2_2018) # only small changes.
+plot(climate_conflict$polity2_lag, climate_conflict$polity2_2018_lag) # only small changes.
 
 ## using (current) GDP from the WB 
 
@@ -1386,7 +1386,7 @@ R_table1_model2 <- lm(conflict ~ tmp.y + tmp_lag.y + pre.y + pre_lag.y + factor(
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 932.
 
-R_table1_model3 <- lm(conflict ~ tmp.y + tmp_lag.y + pre.y + pre_lag.y + GDP_WB + polity2_2018 +factor(iso3)*years,
+R_table1_model3 <- lm(conflict ~ tmp.y + tmp_lag.y + pre.y + pre_lag.y + GDP_pwt9_lag + polity2_2018_lag +factor(iso3)*years,
                     data = climate_conflict)
 
 summary(R_table1_model1)
@@ -1851,8 +1851,8 @@ climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_
 
 
 
-table(is.na(climate_conflict_alternative$polity2_2018)) # 321 missing values
-polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_2018),]
+table(is.na(climate_conflict_alternative$polity2_2018_lag)) # 322 missing values
+polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_2018_lag),]
 view(polityNA) # most of the new countries
 
 
@@ -1892,7 +1892,7 @@ R2_table1_model2 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + factor(iso3)*y
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 932.
 
-R2_table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2_2018 +factor(iso3)*years,
+R2_table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp + polity2_2018_lag +factor(iso3)*years,
                     data = climate_conflict_alternative)
 
 
@@ -1948,54 +1948,55 @@ table(climate_conflict_alternative$conflict_onset)
 
 # ANALYTICAL CHOICE MADE OF TYPE ADJUSTMENT OF STANDARD ERRORS.
 
-summary(table1_model1, robust = T, cluster = c("iso3"))
-summary(table1_model2, robust = T, cluster = c("iso3"))
-summary(table1_model3, robust = T, cluster = c("iso3"))
+coeftest(table1_model1, vcov = vcovCL(table1_model1, cluster = climate_conflict$iso3))
+coeftest(table1_model2, vcov = vcovCL(table1_model2, cluster = climate_conflict$iso3))
+coeftest(table1_model3, vcov = vcovCL(table1_model3, cluster = climate_conflict$iso3))
 
-summary(tableS1_model1, robust = T, cluster = c("iso3"))
-summary(tableS1_model2, robust = T, cluster = c("iso3"))
-summary(tableS1_model3, robust = T, cluster = c("iso3"))
-summary(tableS1_model4, robust = T, cluster = c("iso3"))
-summary(tableS1_model5, robust = T, cluster = c("iso3"))
-summary(tableS1_model6, robust = T, cluster = c("iso3"))
-summary(tableS1_model7, robust = T, cluster = c("iso3"))
-summary(tableS1_model8, robust = T, cluster = c("iso3"))
+coeftest(tableS1_model1, vcov = vcovCL(tableS1_model1, cluster = climate_conflict$iso3))
+coeftest(tableS1_model2, vcov = vcovCL(tableS1_model2, cluster = climate_conflict$iso3))
+coeftest(tableS1_model3, vcov = vcovCL(tableS1_model3, cluster = climate_conflict$iso3))
+coeftest(tableS1_model4, vcov = vcovCL(tableS1_model4, cluster = climate_conflict$iso3))
+coeftest(tableS1_model5, vcov = vcovCL(tableS1_model5, cluster = climate_conflict$iso3))
+coeftest(tableS1_model6, vcov = vcovCL(tableS1_model6, cluster = climate_conflict$iso3))
+coeftest(tableS1_model7, vcov = vcovCL(tableS1_model7, cluster = climate_conflict$iso3))
+coeftest(tableS1_model8, vcov = vcovCL(tableS1_model8, cluster = climate_conflict$iso3))
 
-summary(tableS2_model1, robust = T, cluster = c("iso3"))
-summary(tableS2_model2, robust = T, cluster = c("iso3"))
-summary(tableS2_model3, robust = T, cluster = c("iso3"))
-summary(tableS2_model4, robust = T, cluster = c("iso3"))
-summary(tableS2_model5, robust = T, cluster = c("iso3"))
-summary(tableS2_model6, robust = T, cluster = c("iso3"))
+coeftest(tableS2_model1, vcov = vcovCL(tableS2_model1, cluster = climate_conflict$iso3))
+coeftest(tableS2_model2, vcov = vcovCL(tableS2_model2, cluster = climate_conflict$iso3))
+coeftest(tableS2_model3, vcov = vcovCL(tableS2_model3, cluster = climate_conflict$iso3))
+coeftest(tableS2_model4, vcov = vcovCL(tableS2_model4, cluster = climate_conflict$iso3))
+coeftest(tableS2_model5, vcov = vcovCL(tableS2_model5, cluster = climate_conflict$iso3))
+coeftest(tableS2_model6, vcov = vcovCL(tableS2_model6, cluster = climate_conflict$iso3))
 
-summary(tableS4_model1, robust = T, cluster = c("iso3"))
-summary(tableS4_model2, robust = T, cluster = c("iso3"))
-summary(tableS4_model3, robust = T, cluster = c("iso3"))
-summary(tableS4_model4, robust = T, cluster = c("iso3"))
+coeftest(tableS4_model1, vcov = vcovCL(tableS4_model1, cluster = climate_conflict$iso3))
+coeftest(tableS4_model2, vcov = vcovCL(tableS4_model2, cluster = climate_conflict$iso3))
+coeftest(tableS4_model3, vcov = vcovCL(tableS4_model3, cluster = climate_conflict$iso3))
+coeftest(tableS4_model4, vcov = vcovCL(tableS4_model4, cluster = climate_conflict$iso3))
 
-summary(tableS5_model1, robust = T, cluster = c("iso3"))
-summary(tableS5_model2, robust = T, cluster = c("iso3"))
+coeftest(tableS5_model1, vcov = vcovCL(tableS5_model1, cluster = climate_conflict$iso3))
+coeftest(tableS5_model2, vcov = vcovCL(tableS5_model2, cluster = climate_conflict$iso3))
 
-summary(tableS6_model1, robust = T, cluster = c("iso3"))
-summary(tableS6_model2, robust = T, cluster = c("iso3"))
-summary(tableS6_model3, robust = T, cluster = c("iso3"))
-summary(tableS6_model4, robust = T, cluster = c("iso3"))
-summary(tableS6_model5, robust = T, cluster = c("iso3"))
+coeftest(tableS6_model1, vcov = vcovCL(tableS6_model1, cluster = climate_conflict$iso3))
+coeftest(tableS6_model2, vcov = vcovCL(tableS6_model2, cluster = climate_conflict$iso3))
+coeftest(tableS6_model3, vcov = vcovCL(tableS6_model3, cluster = climate_conflict$iso3))
+coeftest(tableS6_model4, vcov = vcovCL(tableS6_model4, cluster = climate_conflict$iso3))
+coeftest(tableS6_model5, vcov = vcovCL(tableS6_model5, cluster = climate_conflict$iso3))
 
-summary(tableS8_model1, robust = T, cluster = c("iso3"))
-summary(tableS8_model2, robust = T, cluster = c("iso3"))
-summary(tableS8_model3, robust = T, cluster = c("iso3"))
-summary(tableS8_model4, robust = T, cluster = c("iso3"))
+coeftest(tableS8_model1, vcov = vcovCL(tableS8_model1, cluster = climate_conflict$iso3))
+coeftest(tableS8_model2, vcov = vcovCL(tableS8_model2, cluster = climate_conflict$iso3))
+coeftest(tableS8_model3, vcov = vcovCL(tableS8_model3, cluster = climate_conflict$iso3))
+coeftest(tableS8_model4, vcov = vcovCL(tableS8_model4, cluster = climate_conflict$iso3))
 
-summary(R_table1_model1, robust = T, cluster = c("iso3"))
-summary(R_table1_model2, robust = T, cluster = c("iso3"))
-summary(R_table1_model3, robust = T, cluster = c("iso3"))
+coeftest(R_table1_model1, vcov = vcovCL(R_table1_model1, cluster = climate_conflict$iso3))
+coeftest(R_table1_model2, vcov = vcovCL(R_table1_model2, cluster = climate_conflict$iso3))
+coeftest(R_table1_model3, vcov = vcovCL(R_table1_model3, cluster = climate_conflict$iso3))
 
-summary(R2_table1_model1, robust = T, cluster = c("iso3"))
-summary(R2_table1_model2, robust = T, cluster = c("iso3"))
-summary(R2_table1_model3, robust = T, cluster = c("iso3"))
+coeftest(R2_table1_model1, vcov = vcovCL(R2_table1_model1, cluster = climate_conflict_alternative$iso3))
+coeftest(R2_table1_model2, vcov = vcovCL(R2_table1_model2, cluster = climate_conflict_alternative$iso3))
+coeftest(R2_table1_model3, vcov = vcovCL(R2_table1_model3, cluster = climate_conflict_alternative$iso3))
 
-summary(R2_tableS4_model1, robust = T, cluster = c("iso3"))
-summary(R2_tableS4_model2, robust = T, cluster = c("iso3"))
-summary(R2_tableS4_model3, robust = T, cluster = c("iso3"))
-summary(R2_tableS4_model4, robust = T, cluster = c("iso3"))
+coeftest(R2_tableS4_model1, vcov = vcovCL(R2_tableS4_model1, cluster = climate_conflict_alternative$iso3))
+coeftest(R2_tableS4_model2, vcov = vcovCL(R2_tableS4_model2, cluster = climate_conflict_alternative$iso3))
+coeftest(R2_tableS4_model3, vcov = vcovCL(R2_tableS4_model3, cluster = climate_conflict_alternative$iso3))
+coeftest(R2_tableS4_model4, vcov = vcovCL(R2_tableS4_model4, cluster = climate_conflict_alternative$iso3))
+
