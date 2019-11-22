@@ -1105,7 +1105,7 @@ pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode,
 pwt9.1$GDP_pwt9_lag <- dplyr::lag(pwt9.1$GDP_pwt9)
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
 
-pwt9.1$GDP_pwt9_lag <- pwt9.1$GDP_pwt9_lag/1000
+pwt9.1$GDP_pwt9_lag <- pwt9.1$GDP_pwt9_lag/1000000
 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
@@ -1394,10 +1394,10 @@ summary(R_table1_model1)
 coef(R_table1_model1)[1:3]
 coef(table1_model1)[1:3]
 
-coef(R_table1_model2)[1:3]
-coef(table1_model2)[1:3]
-coef(R_table1_model3)[1:3]
-coef(table1_model3)[1:3]
+coef(R_table1_model2)[1:5]
+coef(table1_model2)[1:5]
+coef(R_table1_model3)[1:7]
+coef(table1_model3)[1:7]
 
 # small difference !!
 
