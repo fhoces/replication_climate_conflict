@@ -84,11 +84,13 @@ tikz(file = "firstclimateplots.tex", width = 2.2, height = 2.2)
 
 climateplot1 <- ggplot(var_check, aes(tmp, temp_all)) +
                 geom_point(aes(colour = factor(country)), size = 0.5) +
+                geom_abline(intercept = 0, slope = 1, colour="black", size=0.5)+
                 labs(x = "Temperature in CRU 4.03", y = "Temperature in CRU 2.1" )+
                 theme(legend.position = "none")
 
 climateplot2 <- ggplot(var_check, aes(pre, prec_all)) +
                 geom_point(aes(colour = factor(country)), size = 0.5) +
+                geom_abline(intercept = 0, slope = 1,colour="black", size=0.5) +
                 labs(x = "Precipitaion in CRU 4.03", y= "Precipiation in CRU 2.1")+
                 theme(legend.position = "none")
 
@@ -234,3 +236,8 @@ view(var_check[rowSums(is.na(var_check)) > 0 & var_check$year_actual <= 2002, c(
 
 compare(var_check$polity2_lag.x, var_check$polity2_lag.y) # same
 
+ggplot(var_check, aes(tmp, temp_all)) +
+  geom_point(aes(colour = factor(country)), size = 0.5) +
+  geom_smooth(method='lm', formula= y~x) +
+  labs(x = "Temperature in CRU 4.03", y = "Temperature in CRU 2.1" )+
+  theme(legend.position = "none")
