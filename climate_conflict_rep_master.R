@@ -4,7 +4,7 @@
 rm(list = ls())
 setwd("C:/R/bachelorproject")
 options(scipen = 999)
-subfolder_names <- c("analytical_data", "data")
+subfolder_names <- c("analysis_data", "data")
 
 for (i in 1:length(subfolder_names)){
   folder<-dir.create(paste0("./",subfolder_names[i]))
@@ -378,7 +378,7 @@ view(country_tmp_ann)
 ### temperature finished
 
 
-write_csv(country_tmp_ann, "./analytical_data/country_tmp_ann.csv")
+write_csv(country_tmp_ann, "./analysis_data/country_tmp_ann.csv")
 
 ## importing precipitation
 # ANALYTICAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED IN LINE 43. 
@@ -581,7 +581,7 @@ view(country_pre_ann)
 
 # write into file
 
-write_csv(country_pre_ann, "./analytical_data/country_pre_ann.csv")
+write_csv(country_pre_ann, "./analysis_data/country_pre_ann.csv")
 
 
 ### CRU precipitation finished
@@ -892,7 +892,7 @@ view(polityNA) # Namibia politic score only starts in 1990
 
 ##
 
-write_csv(climate_conflict,"./analytical_data/climate_conflict.csv")
+write_csv(climate_conflict,"./analysis_data/climate_conflict.csv")
 
 
 # relevant time period
@@ -1517,7 +1517,7 @@ country_tmp_ann <- country_tmp_ann %>% mutate(tmp_diff = tmp - tmp_lag,
 ### temperature finished
 
 
-write_csv(country_tmp_ann, "./analytical_data/country_tmp_ann_alternativecountryset.csv")
+write_csv(country_tmp_ann, "./analysis_data/country_tmp_ann_alternativecountryset.csv")
 
 # get the location for the grid cells in pre dataframe
 
@@ -1609,7 +1609,7 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
 
 # write into file
 
-write_csv(country_pre_ann, "./analytical_data/country_pre_ann_alternativecountryset.csv")
+write_csv(country_pre_ann, "./analysis_data/country_pre_ann_alternativecountryset.csv")
 
 ### import conflict data
 
@@ -1859,7 +1859,7 @@ view(polityNA) # most of the new countries
 ##
  
 
-write_csv(climate_conflict_alternative,"./analytical_data/climate_conflict_alternativecountryset.csv")
+write_csv(climate_conflict_alternative,"./analysis_data/climate_conflict_alternativecountryset.csv")
 
 # relevant time period
 
