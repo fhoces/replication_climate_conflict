@@ -63,7 +63,7 @@ climate_conflict_original <- read.dta("./climate_conflict_replication_(original)
 
 # import our data
 
-mydata <- read_csv("./analytical_data/climate_conflict.csv")
+mydata <- read_csv("./analysis_data/climate_conflict.csv")
 
 # country value harmonization
 
