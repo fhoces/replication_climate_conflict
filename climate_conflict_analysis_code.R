@@ -60,7 +60,10 @@ climate_conflict$years <- as.numeric(climate_conflict$years) # need the numeric 
 
 # ANALYTICAL CHOICE MADE OF TYPE ADJUSTMENT OF STANDARD ERRORS.
 # cluster robust standard errors, computed by sandwich package, for all models (unless otherwise stated)
-### table 1
+
+
+## table 1
+
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED HERE.
 
@@ -92,7 +95,7 @@ clusterse_table1_model3 <- sqrt(diag(cov_table1_model3))
 
 stargazer(table1_model1, table1_model2, table1_model3, se = list(clusterse_table1_model1, clusterse_table1_model2, clusterse_table1_model3) , style = "qje", omit = c("iso3","years"), font.size = "small", omit.stat = c("f","ser"), dep.var.labels = "Incidence of Civil War\\(_{(t)}\\)", covariate.labels = c("Temperature\\(_{(t)}\\)","Temperature\\(_{(t-1)}\\)", "Precipitation\\(_{(t)}\\)", "Precipitation\\(_{(t-1)}\\)","GDP\\(_{(t-)}\\)", "Polity Score\\(_{(t-)}\\)"), title = "Reproduction Result of Output Table 1.") 
 
-# robustness 1 
+## robustness 1 
 
 R_table1_model1 <- lm(conflict ~ tmp_wrld_simpl + tmp_wrld_simpl_lag + factor(iso3)*years,
                       data = climate_conflict)
@@ -148,7 +151,7 @@ R2_table1_model2 <- lm(conflict ~ tmp_alt_countries + tmp_alt_countries_lag + pr
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 932.
 
-R2_table1_model3 <- lm(conflict ~ tmp_alt_countries + tmp_alt_countries_lag + pre_alt_countries + pre_alt_countries_lag + gdp_lag + polity2_2018_lag +factor(iso3)*years,
+R2_table1_model3 <- lm(conflict ~ tmp_alt_countries + tmp_alt_countries_lag + pre_alt_countries + pre_alt_countries_lag + gdp_lag + polity2_lag +factor(iso3)*years,
                        data = climate_conflict_alternative)
 
 

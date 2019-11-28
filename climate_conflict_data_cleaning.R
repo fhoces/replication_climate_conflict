@@ -945,45 +945,45 @@ if(!file.exists(dest_polity)) {
 }
 
 
-polity <- read_xls(dest_polity)
-view(polity)
+polity2 <- read_xls(dest_polity)
+view(polity2)
 
 ## scodes are different from iso3 codes, so we have to redine them
 
 
-polity <- as.data.frame(polity) # resolves issue with warning message : unknown or uninitialised column = "country"
+polity2 <- as.data.frame(polity2) # resolves issue with warning message : unknown or uninitialised column = "country"
 
-polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
+polityjoin2 <- left_join(polity2, africancountries, by= c("country" = "countryname"))
 
-uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) # 37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
+uniqueN(polityjoin2$country[!is.na(polityjoin2$iso3)]) # 37 iso codes --> this is good, but seems like there's 4 left where countryname is different too
 
-unique(polityjoin$country[is.na(polityjoin$iso3)])
+unique(polityjoin2$country[is.na(polityjoin2$iso3)])
 # can we find african countries? 
 # Cote D'Ivoire, Ivory coast, congo brazzaville (this is republic) , congo kinshasa (this is democratic republic), gambia, 
 
 # ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED IN LINE 852.
 
-polity$country <- recode(polity$country,
+polity2$country <- recode(polity2$country,
                          "Cote D'Ivoire" = "Cote d'Ivoire",
                          "Ivory Coast" = "Cote d'Ivoire",
                          "Congo Brazzaville" = "Congo, Republic of",
                          "Congo Kinshasa" = "Congo, Dem. Rep.",
                          "Gambia" = "Gambia, The")
 
-polityjoin <- left_join(polity, africancountries, by= c("country" = "countryname"))
-uniqueN(polityjoin$country[!is.na(polityjoin$iso3)]) # 41 iso codes --> good
+polityjoin2 <- left_join(polity2, africancountries, by= c("country" = "countryname"))
+uniqueN(polityjoin2$country[!is.na(polityjoin2$iso3)]) # 41 iso codes --> good
 
 
 ## ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 862.
 ## using polity2 as meassure of political system.
 
-polityjoin <- polityjoin %>% filter(year >= 1980, year <= 2006) %>%
+polityjoin2 <- polityjoin2 %>% filter(year >= 1980, year <= 2006) %>%
   select(years = year, iso3, polity2_2018 = polity2)
-polityjoin$years <- as.character(polityjoin$years)
-polityjoin$polity2_2018_lag <- dplyr::lag(polityjoin$polity2_2018)
+polityjoin2$years <- as.character(polityjoin2$years)
+polityjoin2$polity2_2018_lag <- dplyr::lag(polityjoin2$polity2_2018)
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 874.
 
-climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
+climate_conflict <- left_join(climate_conflict, polityjoin2, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
 table(climate_conflict$countryname) # ethiopia has 23 obs. instead of 22
 
 # ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED IN LINE 883.
@@ -1578,12 +1578,12 @@ table(climate_conflict_alternative$countryname) # ethiopia has 27 obs. instead o
 # the authors decided to use the obs. with the value 0 (for unclear reason, but they were probably indifferent in their choice)
 # ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
 
-climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Ethiopia" & climate_conflict_alternative$years == 1993 & climate_conflict_alternative$polity2_2018 == 1),]
+climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Ethiopia" & climate_conflict_alternative$years == 1993 & climate_conflict_alternative$polity2 == 1),]
 
 
 
-table(is.na(climate_conflict_alternative$polity2_2018_lag)) # 321 missing values
-polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_2018_lag),]
+table(is.na(climate_conflict_alternative$polity2_lag)) # 321 missing values
+polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_lag),]
 view(polityNA) # most of the new countries
 
 
@@ -1606,3 +1606,7 @@ view(climate_conflict_alternative[rowSums(is.na(climate_conflict_alternative)) >
 table(climate_conflict_alternative$conflict_onset)
 
 ## store
+
+
+write_csv(climate_conflict_alternative,"./analysis_data/climate_conflict_alternativecountryset.csv")
+
