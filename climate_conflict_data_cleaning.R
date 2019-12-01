@@ -549,34 +549,34 @@ country_pre_ann <- country_pre_ann %>% mutate(pre_diff = pre - pre_lag,
 # estimate trend for pre
 # ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITON. FIRST RECORDED IN LINE 345.
 
-country_pre_ann$years <- as.numeric(country_pre_ann$years) # to calculate model correctly (instead of having regressor for each year when charactar)
 
 
-trendcoef <- country_pre_ann %>% 
-  filter(years >=1981, years <= 2002) %>%
+country_pre_ann <- country_pre_ann %>% filter(years >= 1980, years <= 2002) # see above analytical choice of calculating trend
+country_pre_ann$years <- as.numeric(country_pre_ann$years)                  # to calculate model correctly (instead of having regressor for each year when charactar)
+
+# calculate a linear pre model for each country
+
+trendcoef <- country_pre_ann %>%
   group_by(iso3) %>% 
   do(model_lin_pre = lm(pre ~ years, .)) %>%
   ungroup()
 
-trendcoef
+trendcoef$model_lin_pre
 
 # use these estimates to compute predictions for all obs.
 
-country_pre_ann <- country_pre_ann %>% left_join(trendcoef, by = "iso3")
+country_pre_ann <- country_pre_ann %>% left_join(trendcoef, by = "iso3") # add model column to dataset
 
 country_pre_ann <- country_pre_ann %>% 
-  filter(years >=1981, years <= 2002) %>% 
   group_by(iso3) %>% 
   do(modelr::add_predictions(., first(.$model_lin_pre), var = "pred_lin_pre"))
 
-country_pre_ann$years <- as.character(country_pre_ann$years) # convert back to character
+country_pre_ann$years <- as.character(country_pre_ann$years) # convert back to character for later merge
 
 country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre, pre_difftrend_lag = dplyr::lag(pre_difftrend))
 country_pre_ann <- country_pre_ann %>% select(-model_lin_pre, -pred_lin_pre) 
 
-
 view(country_pre_ann)
-
 
 ### CRU precipitation finished
 
