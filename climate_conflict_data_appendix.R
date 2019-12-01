@@ -5,7 +5,7 @@
 
 rm(list = ls())
 setwd("C:/R/bachelorproject")
-options(scipen = 999)
+options(scipen = 999, digits = 2)
 
 # load packages
 
@@ -77,17 +77,20 @@ climate_conflict$years <- as.character(climate_conflict$years)
 
 # all variables
 
-# inspected df by mosaic package
+# summary descriptive  by mosaic package
+
+climate_conflict$conflict <- as.character(climate_conflict$conflict)
+climate_conflict$conflict_onset <- as.character(climate_conflict$conflict_onset) # so they get counted as categorical by inspect()
 
 inspect_climate_conflict <- (climate_conflict %>% inspect())
 
-# tables for quant and for categorical
+# tables for quant and for categorical summaries -> will use later
 
-cat_table_df <- as.data.frame(inspect_climate_conflict$categorical) %>% select(-distribution)
+cat_table_df <- as.data.frame(inspect_climate_conflict$categorical)
 
 quant_table_df <- as.data.frame(inspect_climate_conflict$quantitative)
 
-kable(quant_table_df, "latex", caption = "descriptive summary statistics of quantitative variables" , booktabs = T) %>% kable_styling(font_size = 9)
+quant_table_df <- quant_table_df %>% select(-class)  # they are all numeric anyway, no class needed
 
 # countries
 
@@ -99,7 +102,36 @@ uniqueN(climate_conflict$iso3)
 table(climate_conflict$years)
 uniqueN(climate_conflict$years)
 
-# 
+# climate
+
+climate_table_df <- quant_table_df %>% filter(str_detect(name, "^tmp") | str_detect(name, "^pre"))
+
+kable(climate_table_df, "latex", caption = "Descriptive Summary Statistics of Climate Variables" , booktabs = T) %>% kable_styling(font_size = 9)
+
+# conflict
+
+climate_conflict$conflict <- as.numeric(climate_conflict$conflict) # back to numeric for building the means
+
+conflict_means <-  aggregate(climate_conflict$conflict, list(climate_conflict$iso3), mean) # building means of conflict observations for each country
+
+colnames(conflict_means) <- c("iso3", "conflict_mean") # rename columns
+
+ggplot(conflict_means, aes(iso3,conflict_mean, fill = iso3)) +
+  geom_bar(stat = "identity")
+
+
+conflict_years <- aggregate(climate_conflict$conflict, list(climate_conflict$years), sum) # summing up over years, should give nice overview
+
+colnames(conflict_years) <- c("years", "conflict_sum")
+
+ggplot(conflict_years, aes(years,conflict_sum, fill = years)) +
+  geom_bar(stat = "identity")
+
+# gdp 
+
+
+
+
 climate_conflict_tmp <- climate_conflict %>% select(starts_with("tmp"))
 climate_conflict_pre <- climate_conflict %>% select(starts_with("pre"))
 climate_conflict_polity <- climate_conflict %>% select(starts_with("polity"))
