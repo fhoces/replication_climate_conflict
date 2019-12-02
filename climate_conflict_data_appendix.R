@@ -65,6 +65,45 @@ theme_new <- function(base_size = 9,
 
 theme_set(theme_new())
 
+# set up a variable labeller for tikz so it can convert them to LaTeX
+
+
+variable_names <- list(
+  "tmp" = "tmp" ,
+  "tmp_lag" = "tmp\\_lag",
+  "tmp_lead" = "tmp\\_lead",
+  "tmp_square" = "tmp\\_square",
+  "tmp_lag_square" = "tmp\\_lag\\_square",
+  "tmp_diff" = "tmp\\_diff",
+  "tmp_diff_lag" =   "tmp\\_diff\\_lag",
+  "tmp_difftrend" =   "tmp\\_difftrend",
+  "tmp_difftrend_lag" =   "tmp\\_difftrend\\_lag",
+  "tmp_wrld_simpl" = "tmp\\_wrld\\_simpl",
+  "tmp_wrld_simpl_lag" = "tmp\\_wrld\\_simpl\\_lag",
+  "pre" = "pre" ,
+  "pre_lag" = "pre\\_lag",
+  "pre_lead" = "pre\\_lead",
+  "pre_square" = "pre\\_square",
+  "pre_lag_square" = "pre\\_lag\\_square",
+  "pre_diff" = "pre\\_diff",
+  "pre_diff_lag" =   "pre\\_diff\\_lag",
+  "pre_difftrend" =   "pre\\_difftrend",
+  "pre_difftrend_lag" =   "pre\\_difftrend\\_lag",
+  "pre_wrld_simpl" = "pre\\_wrld\\_simpl",
+  "pre_wrld_simpl_lag" = "pre\\_wrld\\_simpl\\_lag",
+  "gdp_lag" = "gdp\\_lag",
+  "gdp_pwt9" = "gdp\\_pwt9",
+  "gdp_pwt9_lag" = "gdp\\_pwt9\\_lag", 
+  "polity2_lag" = "polity2\\_lag",
+  "polity2_2018" = "polity2\\_2018",
+  "polity2_2018_lag" = "polity2\\_2018\\_lag"
+)
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+
 # load analysis data
 
 climate_conflict <- read_csv("./analysis_data/climate_conflict.csv")
@@ -127,33 +166,38 @@ colnames(conflict_years) <- c("years", "conflict_sum")
 ggplot(conflict_years, aes(years,conflict_sum, fill = years)) +
   geom_bar(stat = "identity")
 
-# gdp 
+# control
+
+control_table_df <- quant_table_df %>% filter(str_detect(name, "^gdp") | str_detect(name, "^polity")) %>% arrange(name)
+
+control_table_df <- control_table_df[c(1,2,3,4,5,8,6,7),] # quick and dirty manual reorder to have same nice together
+
+rownames(control_table_df) <- c() # get rid of rownames
+
+kable(control_table_df, "latex", caption = "Descriptive Summary Statistics of Control Variables" , booktabs = T) %>% kable_styling(font_size = 9)
 
 
+# gdp
+
+tikz("./tikz/gdp_hist.tex", width = 4, height = 4)
+
+gdp_hist <- ggplot(climate_conflict, aes(gdp)) +
+  geom_histogram(binwidth = 0.1)
+
+gdp_pwt9_hist <- ggplot(climate_conflict, aes(gdp_pwt9)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("gdp\\_pwt9")
+
+gdp_hist
+gdp_pwt9_hist
+
+dev.off()
 
 
 climate_conflict_tmp <- climate_conflict %>% select(starts_with("tmp"))
 climate_conflict_pre <- climate_conflict %>% select(starts_with("pre"))
 climate_conflict_polity <- climate_conflict %>% select(starts_with("polity"))
 climate_conflict_conflict <- climate_conflict %>% select(starts_with("conflict"))
-
-variable_names <- list(
-  "tmp" = "tmp" ,
-  "tmp_lag" = "tmp\\_lag",
-  "tmp_lead" = "tmp\\_lead",
-  "tmp_square" = "tmp\\_square",
-  "tmp_lag_square" = "tmp\\_lag\\_square",
-  "tmp_diff" = "tmp\\_diff",
-  "tmp_diff_lag" =   "tmp\\_diff\\_lag",
-  "tmp_difftrend" =   "tmp\\_difftrend",
-  "tmp_difftrend_lag" =   "tmp\\_difftrend\\_lag",
-  "tmp_wrld_simpl" = "tmp\\_wrld\\_simpl",
-  "tmp_wrld_simpl_lag" = "tmp\\_wrld\\_simpl\\_lag"
-)
-
-variable_labeller <- function(variable,value){
-  return(variable_names[value])
-}
 
 tikz("./tikz/tmp_hist.tex", width = 4, height = 4)
 
