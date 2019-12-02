@@ -372,9 +372,6 @@ country_tmp_ann$years <- as.character(country_tmp_ann$years) # convert back to c
 country_tmp_ann <- country_tmp_ann %>% mutate(tmp_difftrend = tmp - pred_lin_tmp, tmp_difftrend_lag = dplyr::lag(tmp_difftrend))
 country_tmp_ann <- country_tmp_ann %>% select(-model_lin_tmp, -pred_lin_tmp) 
 
-view(country_tmp_ann)
-
-
 ### temperature finished
 
 
@@ -576,8 +573,6 @@ country_pre_ann$years <- as.character(country_pre_ann$years) # convert back to c
 country_pre_ann <- country_pre_ann %>% mutate(pre_difftrend = pre - pred_lin_pre, pre_difftrend_lag = dplyr::lag(pre_difftrend))
 country_pre_ann <- country_pre_ann %>% select(-model_lin_pre, -pred_lin_pre) 
 
-view(country_pre_ann)
-
 ### CRU precipitation finished
 
 
@@ -756,10 +751,8 @@ climate_conflict <- list(country_tmp_ann, country_pre_ann, conflict) %>% reduce(
 
 climate_conflict$conflict[is.na(climate_conflict$conflict)] <- 0 #changes NA values in conflict to 0 (no conflict)
 
-view(climate_conflict)
 
-
-view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
+climate_conflict[is.na(climate_conflict$conflict),] # no more NA's
 
 # because of missing climate data, the data has been rearranged.. sort 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
@@ -808,10 +801,12 @@ pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
 # I use lagged rgdptt as the GDP meassure (see https://cran.r-project.org/web/packages/pwt/pwt.pdf for definition)
 
 pwt6.2 <- pwt6.2 %>% filter(year>= 1980, year<=2006) %>% select(iso3 = isocode, years = year, gdp = rgdptt)
-pwt6.2$gdp_lag <- dplyr::lag(pwt6.2$gdp)
+
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED HERE.
 
-pwt6.2$gdp_lag <- pwt6.2$gdp_lag/1000
+pwt6.2$gdp <- pwt6.2$gdp/1000
+
+pwt6.2$gdp_lag <- dplyr::lag(pwt6.2$gdp)
 
 # ANALYITCAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
@@ -830,7 +825,7 @@ politypath <- "./raw_data/polity/"
 polityfname <- "p4v2007.xls"
 dest_polity <- paste(politypath, polityfname, sep = "") # not publicly available online, but upon request from Center for Systemic Peace
 polity <- read_xls(dest_polity)
-view(polity)
+
 
 ## scodes are different from iso3 codes, so we have to redefine them
 
@@ -882,7 +877,7 @@ climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia
 
 table(is.na(climate_conflict$polity2_lag)) # 9 missing values
 polityNA <- climate_conflict[is.na(climate_conflict$polity2_lag),]
-view(polityNA) # Namibia politic score only starts in 1990
+polityNA # Namibia politic score only starts in 1990
 
 ##
 
@@ -910,18 +905,20 @@ climate_conflict$years <- as.character(climate_conflict$years) # need the charac
 # ANALYTICAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED HERE.
 
 data("pwt9.1")
-view(pwt9.1)
 pwt9.1$isocode <- as.character(pwt9.1$isocode)
 pwt9.1$year <- as.character(pwt9.1$year)
 
 # ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
-# defining GDP as real GDP at constant national prices
+# defining GDP as real GDP at constant national prices, divided by population
 
-pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, gdp_pwt9 = rgdpna)
-pwt9.1$gdp_pwt9_lag <- dplyr::lag(pwt9.1$gdp_pwt9)
+pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, gdp_pwt9_total = rgdpna, pop)
+
+pwt9.1 <- pwt9.1 %>% transmute(iso3, years, gdp_pwt9 = gdp_pwt9_total/pop)
+
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
 
-pwt9.1$gdp_pwt9_lag <- pwt9.1$gdp_pwt9_lag*1000
+pwt9.1$gdp_pwt9 <- pwt9.1$gdp_pwt9/1000
+pwt9.1$gdp_pwt9_lag <- dplyr::lag(pwt9.1$gdp_pwt9)
 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
@@ -929,7 +926,7 @@ climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
 
 table(is.na(climate_conflict$gdp_pwt9_lag)) # 22 missing values
 
-view(climate_conflict[is.na(climate_conflict$gdp_pwt9_lag),]) # SOM
+climate_conflict[is.na(climate_conflict$gdp_pwt9_lag),] # SOM
 
 
 ## Polity IV current dataset (2018)
@@ -946,7 +943,7 @@ if(!file.exists(dest_polity)) {
 
 
 polity2 <- read_xls(dest_polity)
-view(polity2)
+
 
 ## scodes are different from iso3 codes, so we have to redine them
 
@@ -992,7 +989,7 @@ climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia
 
 
 
-view(climate_conflict[is.na(climate_conflict$polity2_2018_lag),]) # 9 missing values for Namibia, same as in polityIV 2008
+climate_conflict[is.na(climate_conflict$polity2_2018_lag),] # 9 missing values for Namibia, same as in polityIV 2008
 
 plot(climate_conflict$polity2_lag, climate_conflict$polity2_2018_lag) # only small changes.
 
@@ -1525,10 +1522,7 @@ climate_conflict_alternative <- list(country_tmp_ann2, country_pre_ann2, conflic
 
 climate_conflict_alternative$conflict[is.na(climate_conflict_alternative$conflict)] <- 0 # changes NA values in conflict to 0 (no conflict)
 
-view(climate_conflict_alternative)
-
-
-view(climate_conflict[is.na(climate_conflict$conflict),]) # no more NA's
+climate_conflict[is.na(climate_conflict$conflict),] # no more NA's
 
 # because of missing climate data, the data has been rearranged.. sort 
 
@@ -1563,7 +1557,7 @@ climate_conflict_alternative <- left_join(climate_conflict_alternative, pwt6.2, 
 table(is.na(climate_conflict_alternative$gdp)) # 222 missing values
 
 
-view(climate_conflict_alternative[is.na(climate_conflict_alternative$gdp) & climate_conflict_alternative$years <= 2002,]) # Angola , plus now Lybia and South Sudan
+print(climate_conflict_alternative[is.na(climate_conflict_alternative$gdp) & climate_conflict_alternative$years <= 2002,], n = Inf) # Angola , plus now Lybia, South Sudan and Eritrea
 
 
 ## Polity IV data 
@@ -1584,7 +1578,7 @@ climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_
 
 table(is.na(climate_conflict_alternative$polity2_lag)) # 321 missing values
 polityNA <- climate_conflict_alternative[is.na(climate_conflict_alternative$polity2_lag),]
-view(polityNA) # most of the new countries
+unique(polityNA$iso3) # most of the new countries
 
 
 ##
