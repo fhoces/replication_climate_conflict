@@ -127,10 +127,10 @@ stargazer(table1_model1, table1_model2, R_table1_model1, R_table1_model2, se = l
 
 # ANALYTICAL CHOICE OF TYPE CONTROLS. FIRST RECORDED IN LINE 932.
 
-R_table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + GDP_pwt9_lag + polity2_2018_lag +factor(iso3)*years,
+R_table1_model3 <- lm(conflict ~ tmp + tmp_lag + pre + pre_lag + gdp_pwt9_lag + polity2_2018_lag +factor(iso3)*years,
                       data = climate_conflict)
 
-names(R_table1_model3$coefficients)[names(R_table1_model3$coefficients) == "GDP_pwt9_lag"] <-  "gdp_lag"
+names(R_table1_model3$coefficients)[names(R_table1_model3$coefficients) == "gdp_pwt9_lag"] <-  "gdp_lag"
 names(R_table1_model3$coefficients)[names(R_table1_model3$coefficients) == "polity2_2018_lag"] <- "polity2_lag"
 
 cov_R_table1_model3 <- vcovCL(R_table1_model3, cluster = climate_conflict$iso3)

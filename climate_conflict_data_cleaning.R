@@ -917,19 +917,19 @@ pwt9.1$year <- as.character(pwt9.1$year)
 # ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
 # defining GDP as real GDP at constant national prices
 
-pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, GDP_pwt9 = rgdpna)
-pwt9.1$GDP_pwt9_lag <- dplyr::lag(pwt9.1$GDP_pwt9)
+pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, gdp_pwt9 = rgdpna)
+pwt9.1$gdp_pwt9_lag <- dplyr::lag(pwt9.1$gdp_pwt9)
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
 
-pwt9.1$GDP_pwt9_lag <- pwt9.1$GDP_pwt9_lag*1000
+pwt9.1$gdp_pwt9_lag <- pwt9.1$gdp_pwt9_lag*1000
 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
 
 climate_conflict <- left_join(climate_conflict, pwt9.1, by = c("iso3", "years"))
 
-table(is.na(climate_conflict$GDP_pwt9_lag)) # 22 missing values
+table(is.na(climate_conflict$gdp_pwt9_lag)) # 22 missing values
 
-view(climate_conflict[is.na(climate_conflict$GDP_pwt9_lag),]) # SOM
+view(climate_conflict[is.na(climate_conflict$gdp_pwt9_lag),]) # SOM
 
 
 ## Polity IV current dataset (2018)
