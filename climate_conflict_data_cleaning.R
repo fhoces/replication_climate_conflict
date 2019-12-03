@@ -913,11 +913,11 @@ pwt9.1$year <- as.character(pwt9.1$year)
 
 pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode, years = year, gdp_pwt9_total = rgdpna, pop)
 
-pwt9.1 <- pwt9.1 %>% transmute(iso3, years, gdp_pwt9 = gdp_pwt9_total/pop)
+pwt9.1 <- pwt9.1 %>% transmute(iso3, years, gdp_pwt9 = gdp_pwt9_total/(pop*1000000)) # derive GDP per capita , population is in milions
 
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
 
-pwt9.1$gdp_pwt9 <- pwt9.1$gdp_pwt9/1000
+pwt9.1$gdp_pwt9 <- pwt9.1$gdp_pwt9*1000
 pwt9.1$gdp_pwt9_lag <- dplyr::lag(pwt9.1$gdp_pwt9)
 
 # ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE.
