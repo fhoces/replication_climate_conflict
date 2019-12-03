@@ -1133,7 +1133,7 @@ country_pre_ann2 <- country_pre2 %>% separate(months, into=c("years", "months"))
 # adjust unit : divide by 100
 # ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE ....
 
-country_pre_ann$pre <- country_pre_ann$pre/100
+country_pre_ann2$pre_wrld_simpl <- country_pre_ann2$pre_wrld_simpl/100
 
 dim(country_pre_ann2)
 table(country_pre_ann2$years)
