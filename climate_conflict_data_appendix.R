@@ -27,7 +27,7 @@ package_load <- function(x) {
 
 packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape", "fastDummies",
               "wbstats", "pwt","pwt9", "data.table", "foreign", "plm", "stargazer", "R.utils", "compare",
-              "maptools", "lmtest", "sandwich", "mosaic", "knitr","kableExtra", "tikzDevice")
+              "maptools", "lmtest", "sandwich", "mosaic", "knitr","kableExtra", "tikzDevice", "ggpubr")
 
 package_load(packages)
 
@@ -64,44 +64,6 @@ theme_new <- function(base_size = 9,
 }
 
 theme_set(theme_new())
-
-# set up a variable labeller for tikz so it can convert them to LaTeX
-
-
-variable_names <- list(
-  "tmp" = "tmp" ,
-  "tmp_lag" = "tmp\\_lag",
-  "tmp_lead" = "tmp\\_lead",
-  "tmp_square" = "tmp\\_square",
-  "tmp_lag_square" = "tmp\\_lag\\_square",
-  "tmp_diff" = "tmp\\_diff",
-  "tmp_diff_lag" =   "tmp\\_diff\\_lag",
-  "tmp_difftrend" =   "tmp\\_difftrend",
-  "tmp_difftrend_lag" =   "tmp\\_difftrend\\_lag",
-  "tmp_wrld_simpl" = "tmp\\_wrld\\_simpl",
-  "tmp_wrld_simpl_lag" = "tmp\\_wrld\\_simpl\\_lag",
-  "pre" = "pre" ,
-  "pre_lag" = "pre\\_lag",
-  "pre_lead" = "pre\\_lead",
-  "pre_square" = "pre\\_square",
-  "pre_lag_square" = "pre\\_lag\\_square",
-  "pre_diff" = "pre\\_diff",
-  "pre_diff_lag" =   "pre\\_diff\\_lag",
-  "pre_difftrend" =   "pre\\_difftrend",
-  "pre_difftrend_lag" =   "pre\\_difftrend\\_lag",
-  "pre_wrld_simpl" = "pre\\_wrld\\_simpl",
-  "pre_wrld_simpl_lag" = "pre\\_wrld\\_simpl\\_lag",
-  "gdp_lag" = "gdp\\_lag",
-  "gdp_pwt9" = "gdp\\_pwt9",
-  "gdp_pwt9_lag" = "gdp\\_pwt9\\_lag", 
-  "polity2_lag" = "polity2\\_lag",
-  "polity2_2018" = "polity2\\_2018",
-  "polity2_2018_lag" = "polity2\\_2018\\_lag"
-)
-
-variable_labeller <- function(variable,value){
-  return(variable_names[value])
-}
 
 
 # load analysis data
@@ -141,30 +103,110 @@ uniqueN(climate_conflict$iso3)
 table(climate_conflict$years)
 uniqueN(climate_conflict$years)
 
+# conflict
+
+conflict_table_df <- cat_table_df %>% filter(str_detect(name,"^conflict"))
+
+kable(conflict_table_df, "latex", caption = "Descriptive Summary Statistics of Conflict Variables" , booktabs = T) %>% kable_styling(font_size = 9)
+
+climate_conflict$conflict <- as.numeric(climate_conflict$conflict) # back to numeric for building the means
+
+climate_conflict$conflict_onset <- as.numeric(climate_conflict$conflict_onset)
+
+q1 <- ggplot(climate_conflict, aes(conflict)) +
+  geom_histogram(binwidth = 0.1)
+
+
+conflict_means <-  aggregate(climate_conflict$conflict, list(climate_conflict$iso3), mean) # building means of conflict observations for each country
+
+colnames(conflict_means) <- c("iso3", "conflict_mean") # rename columns
+
+q2 <- ggplot(conflict_means, aes(iso3,conflict_mean)) +
+  geom_bar(stat = "identity") +
+  ylab("conflict mean") +
+  theme(axis.text.x = element_text(angle = 90))
+
+conflict_years <- aggregate(climate_conflict$conflict, list(climate_conflict$years), sum) # summing up over years, should give nice overview
+
+colnames(conflict_years) <- c("years", "conflict_sum")
+
+q3 <- ggplot(conflict_years, aes(years,conflict_sum)) +
+  geom_bar(stat = "identity") +
+  ylab("conflict sum")
+
+q4 <- ggplot(climate_conflict, aes(conflict_onset)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("conflict\\_onset")
+
+
+tikz("./tikz/conflict_hist.tex", width = 4.5, height = 4.5)
+
+conflict_hist <- ggarrange(ggarrange(q1,q4, ncol = 2),q2,q3, nrow = 3)
+
+conflict_hist 
+
+dev.off()
+
 # climate
 
 climate_table_df <- quant_table_df %>% filter(str_detect(name, "^tmp") | str_detect(name, "^pre"))
 
 kable(climate_table_df, "latex", caption = "Descriptive Summary Statistics of Climate Variables" , booktabs = T) %>% kable_styling(font_size = 9)
 
-# conflict
 
-climate_conflict$conflict <- as.numeric(climate_conflict$conflict) # back to numeric for building the means
+# tmp
 
-conflict_means <-  aggregate(climate_conflict$conflict, list(climate_conflict$iso3), mean) # building means of conflict observations for each country
+climate_conflict_tmp <- climate_conflict %>% select(starts_with("tmp")) %>% select(-contains("lag")) # select tmp variables, excluding lag
 
-colnames(conflict_means) <- c("iso3", "conflict_mean") # rename columns
+variable_names_tmp <- list(
+  "tmp" = "tmp" ,
+  "tmp_lead" = "tmp\\_lead",
+  "tmp_square" = "tmp\\_square",
+  "tmp_diff" = "tmp\\_diff",
+  "tmp_difftrend" =   "tmp\\_difftrend",
+  "tmp_wrld_simpl" = "tmp\\_wrld\\_simpl"
+)
 
-ggplot(conflict_means, aes(iso3,conflict_mean, fill = iso3)) +
-  geom_bar(stat = "identity")
+variable_labeller_tmp <- function(variable,value){
+  return(variable_names_tmp[value])
+}
 
+tikz("./tikz/tmp_hist.tex", width = 4.5, height = 3.5)
 
-conflict_years <- aggregate(climate_conflict$conflict, list(climate_conflict$years), sum) # summing up over years, should give nice overview
+tmp_hist <- ggplot(gather(climate_conflict_tmp, factor_key = T), aes(value)) +
+  geom_histogram(binwidth = 0.1, colour = "black") +
+  facet_wrap(~key, scales = 'free', labeller=variable_labeller_tmp, ncol =2)
 
-colnames(conflict_years) <- c("years", "conflict_sum")
+tmp_hist
 
-ggplot(conflict_years, aes(years,conflict_sum, fill = years)) +
-  geom_bar(stat = "identity")
+dev.off()
+
+# pre
+
+climate_conflict_pre <- climate_conflict %>% select(starts_with("pre")) %>% select(-contains("lag"))
+
+variable_names_pre <- list(
+  "pre" = "pre" ,
+  "pre_lead" = "pre\\_lead",
+  "pre_square" = "pre\\_square",
+  "pre_diff" = "pre\\_diff",
+  "pre_difftrend" =   "pre\\_difftrend",
+  "pre_wrld_simpl" = "pre\\_wrld\\_simpl"
+)
+
+variable_labeller_pre <- function(variable,value){
+  return(variable_names_pre[value])
+}
+
+tikz("./tikz/pre_hist.tex", width = 4.5, height = 3.5)
+
+pre_hist <- ggplot(gather(climate_conflict_pre, factor_key = T), aes(value)) +
+  geom_histogram(binwidth = 0.1, colour = "black") +
+  facet_wrap(~key, scales = 'free', labeller=variable_labeller_pre, ncol =2)
+
+pre_hist
+
+dev.off()
 
 # control
 
@@ -179,7 +221,7 @@ kable(control_table_df, "latex", caption = "Descriptive Summary Statistics of Co
 
 # gdp
 
-tikz("./tikz/gdp_hist.tex", width = 4, height = 4)
+tikz("./tikz/gdp_hist.tex", width = 4.5, height = 3.5)
 
 gdp_hist <- ggplot(climate_conflict, aes(gdp)) +
   geom_histogram(binwidth = 0.1)
@@ -188,35 +230,142 @@ gdp_pwt9_hist <- ggplot(climate_conflict, aes(gdp_pwt9)) +
   geom_histogram(binwidth = 0.1) +
   xlab("gdp\\_pwt9")
 
-gdp_hist
-gdp_pwt9_hist
+ggarrange(gdp_hist, gdp_pwt9_hist, nrow = 2)
+dev.off()
 
+# polity 
+
+tikz("./tikz/polity_hist.tex", width = 3.5, height = 3.5)
+
+polity_hist <- ggplot(climate_conflict, aes(polity2)) +
+  geom_histogram(binwidth = 0.1)
+polity2018_hist <- ggplot(climate_conflict, aes(polity2_2018)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("polity2\\_2018")
+
+ggarrange(polity_hist, polity2018_hist, nrow = 2)
 dev.off()
 
 
-climate_conflict_tmp <- climate_conflict %>% select(starts_with("tmp"))
-climate_conflict_pre <- climate_conflict %>% select(starts_with("pre"))
-climate_conflict_polity <- climate_conflict %>% select(starts_with("polity"))
-climate_conflict_conflict <- climate_conflict %>% select(starts_with("conflict"))
+## now for alternative countryset file
 
-tikz("./tikz/tmp_hist.tex", width = 4, height = 4)
+# all variables
 
-tmp_hist <- ggplot(gather(climate_conflict_tmp, factor_key = T), aes(value)) +
-    geom_histogram(binwidth = 0.1, colour = "black") +
-    facet_wrap(~key, scales = 'free', labeller=variable_labeller, ncol =2)
+# summary descriptive  by mosaic package
 
-tmp_hist
+climate_conflict_alternative$conflict <- as.character(climate_conflict_alternative$conflict)
+climate_conflict_alternative$conflict_onset <- as.character(climate_conflict_alternative$conflict_onset) # so they get counted as categorical by inspect()
+
+inspect_climate_conflict_alternative <- (climate_conflict_alternative %>% inspect())
+
+# tables for quant and for categorical summaries -> will use later
+
+cat_table_df <- as.data.frame(inspect_climate_conflict_alternative$categorical)
+
+quant_table_df <- as.data.frame(inspect_climate_conflict_alternative$quantitative)
+
+quant_table_df <- quant_table_df %>% select(-class)  # they are all numeric anyway, no class needed
+
+# countries
+
+table(climate_conflict_alternative$iso3)
+uniqueN(climate_conflict_alternative$iso3)
+
+# years
+
+table(climate_conflict_alternative$years)
+uniqueN(climate_conflict_alternative$years)
+
+# conflict
+
+conflict_table_df <- cat_table_df %>% filter(str_detect(name,"^conflict"))
+
+kable(conflict_table_df, "latex", caption = "Descriptive Summary Statistics of Conflict Variables in alternative country dataset" , booktabs = T) %>% kable_styling(font_size = 9)
+
+climate_conflict_alternative$conflict <- as.numeric(climate_conflict_alternative$conflict) # back to numeric for building the means
+
+climate_conflict_alternative$conflict_onset <- as.numeric(climate_conflict_alternative$conflict_onset)
+
+q1 <- ggplot(climate_conflict_alternative, aes(conflict)) +
+  geom_histogram(binwidth = 0.1)
+
+
+conflict_means <-  aggregate(climate_conflict_alternative$conflict, list(climate_conflict_alternative$iso3), mean) # building means of conflict observations for each country
+
+colnames(conflict_means) <- c("iso3", "conflict_mean") # rename columns
+
+q2 <- ggplot(conflict_means, aes(iso3,conflict_mean)) +
+  geom_bar(stat = "identity") +
+  ylab("conflict mean") +
+  theme(axis.text.x = element_text(angle = 90))
+
+conflict_years <- aggregate(climate_conflict_alternative$conflict, list(climate_conflict_alternative$years), sum) # summing up over years, should give nice overview
+
+colnames(conflict_years) <- c("years", "conflict_sum")
+
+q3 <- ggplot(conflict_years, aes(years,conflict_sum)) +
+  geom_bar(stat = "identity") +
+  ylab("conflict sum")
+
+q4 <- ggplot(climate_conflict_alternative, aes(conflict_onset)) +
+  geom_histogram(binwidth = 0.1) +
+  xlab("conflict\\_onset")
+
+
+tikz("./tikz/conflict_hist_alt.tex", width = 4.5, height = 4.5)
+
+conflict_hist_alt <- ggarrange(ggarrange(q1,q4, ncol = 2),q2,q3, nrow = 3)
+
+conflict_hist_alt
 
 dev.off()
 
-# tmp_lag
+# climate
 
-kable(favstats(climate_conflict$tmp_lag), "latex", caption = "tmp\\_lag summary statistics", booktabs = T) %>% kable_styling(font_size = 9)
+climate_table_df <- quant_table_df %>% filter(str_detect(name, "^tmp") | str_detect(name, "^pre"))
 
-# tmp_lead
+kable(climate_table_df, "latex", caption = "Descriptive Summary Statistics of Climate Variables in alternative countryset" , booktabs = T) %>% kable_styling(font_size = 9)
 
-kable(favstats(climate_conflict$tmp_lead), "latex", caption = "tmp\\_lead summary statistics", booktabs = T) %>% kable_styling(font_size = 9)
 
-# gdp 
+climate_conflict_alternative_climate_alt <- climate_conflict_alternative %>% select(matches("tmp|pre")) %>% select(-contains("lag")) # select tmp variables, excluding lag
 
-summaryFull(climate_conflict$gdp)[2]
+variable_names_climate_alt <- list(
+  "tmp_alt_countries" = "tmp\\_alt\\_countries" ,
+  "tmp_alt_countries_diff" = "tmp\\_alt\\_countries\\_diff",
+  "pre_alt_countries" = "pre\\_alt\\_countries" ,
+  "pre_alt_countries_diff" = "pre\\_alt\\_countries\\_diff"
+)
+
+variable_labeller_climate_alt <- function(variable,value){
+  return(variable_names_climate_alt[value])
+}
+
+tikz("./tikz/climate_hist_alt.tex", width = 4.5, height = 3.5)
+
+climate_hist_alt <- ggplot(gather(climate_conflict_alternative_climate_alt, factor_key = T), aes(value)) +
+  geom_histogram(binwidth = 0.1, colour = "black") +
+  facet_wrap(~key, scales = 'free', labeller=variable_labeller_climate_alt, ncol =2)
+
+climate_hist_alt
+
+dev.off()
+
+# control
+
+control_table_df <- quant_table_df %>% filter(str_detect(name, "^gdp") | str_detect(name, "^polity")) %>% arrange(name)
+
+rownames(control_table_df) <- c() # get rid of rownames
+
+kable(control_table_df, "latex", caption = "Descriptive Summary Statistics of Control Variables" , booktabs = T) %>% kable_styling(font_size = 9)
+
+
+tikz("./tikz/control_hist_alt.tex", width = 4.5, height = 3.5)
+
+gdp_hist_alt <- ggplot(climate_conflict_alternative, aes(gdp)) +
+  geom_histogram(binwidth = 0.1)
+
+polity_hist_alt <- ggplot(climate_conflict_alternative, aes(polity2)) +
+  geom_histogram(binwidth = 0.1)
+
+ggarrange(gdp_hist_alt, polity_hist_alt, nrow = 2)
+dev.off()
