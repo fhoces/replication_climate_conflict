@@ -1130,6 +1130,11 @@ dim(country_pre2)
 
 country_pre_ann2 <- country_pre2 %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(pre_wrld_simpl=mean(pre_wrld_simpl))
 
+# adjust unit : divide by 100
+# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE ....
+
+country_pre_ann$pre <- country_pre_ann$pre/100
+
 dim(country_pre_ann2)
 table(country_pre_ann2$years)
 table(country_pre_ann2$iso3)
