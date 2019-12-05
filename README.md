@@ -1,13 +1,13 @@
-# Replication excercise
+# Reproduction excercise
 
 ### What is this rep for ? 
 
 
-Replication of output of the work "Warming increases the risk of civil war in Africa" by the authors Marshall B. Burke, Edward Miguel, Shanker Satyanath, John A. Dykema, and David B. Lobell.
+Reproduction of output of the work "Warming increases the risk of civil war in Africa" by the authors Marshall B. Burke, Edward Miguel, Shanker Satyanath, John A. Dykema, and David B. Lobell.
 
 Framework adapted from BITSS, documented at https://github.com/fhoces/ACRE.git. 
 
-Complementary OSF repository, including more files for replication and analytical assessment of the code:
+Complementary OSF repository, including more files for reproduction, information on data and further topics, including my thesis:
 
 https://osf.io/jxn5b/
 
@@ -15,44 +15,36 @@ https://osf.io/jxn5b/
 running the master file and receiving results. Download p4v2007 from order /data/polity/
 and store it under exact same subfolder combination in your working directory. 
 
-Aside from that only thing to change in the code to run it is, obviously, change WD.
+Aside from that only thing to change in the code to run it is changing the working directory.
 
 
 ### File overview
 
-#### *climate_conflict_rep_master.R*
+#### *climate_conflict_data_cleaning.R*
 
-Master file replicating chosen outputs of the above mentioned paper. Replicates the tables 1 , S1, S2, S4, S5, S6 and S8.
+Master file for data cleaning. 
 
 **NOTE:** My master file uses a different (more recent) version of the CRU climate data (4.03 compared to 2.1 in the original production).</br>
 The reason for this is the version of CRU used by the authors of the paper is coded in ASCII and rather difficult to import in R, whereas CRU 4.03 is in a nice easy peasy NetCDF4 format.
 
-As of now, no replication of Tables 2 and Figures 1 and 2 , because not relevant part of the reproduction excercise (do not focus on causal relationship estimation, but rather on prediction).
+#### *climate_conflict_analysis_code*
+
+This script imports the data ultimately computed by the *climate_conflict_data_cleaning.R* script, and uses this data to compute all the outputs in my thesis. 
+Regarding a complete reproduction of the paper I examined: As of now, no reproduction of Tables 2 and Figures 1 and 2 , because not relevant part of the reproduction excercise (do not focus on causal relationship estimation, but rather on prediction).
 Tables S3 and S7 have not been replicated yet because of complexity.
 
-Rough overview of the document: 
-- line 0 - 909: first part of the script is cleaning code, imports relevant data and makes it ready to use 
-- line 910 - 1087: 	creates models for replication of tables
-- line 1088 - 1946: robustness checks
-- line 1947 - end:	give out all models created
+**NOTE:** For producing Figure 1 in my thesis, the code imports the original replication folder provided by Burke et al. (downloadable at https://doi.org/10.7910/DVN/28109). 
 
-#### *check_variables*
+#### *climate_conflict_data_appendix*
 
-This folder contains different files that check the relationship between the variables climate_conflict_rep_master.R creates from the raw data and the ones that are given by the analytical
-dataset in the original replication folder (downloadable at https://doi.org/10.7910/DVN/28109 , I will ask for permission to upload it on OSF rep mentioned above)  . 
-
-**Again, just to be clear:** The difference between my variables and the original ones is created by different computation (analytical choices in cleaning code),
-but also from the fact that I use different climate data (CRU 4.03 vs CRU 2.1). 
+Script that computes the output of the data appendix, also provided in my OSF repository. 
 
 ### Further work to do 
 
-- [ ] create project/master file manual
 - [ ] simplifying of master file 
   - improving modularity
   - removes duplicate code
   - adds to understandabilty of code - good code should be short and explain itself
 - [ ] more on modularity: replace magic numbers by variables at the top of the file (or seperate script - something like master_input_....R ?) to show the input
-- [ ] modularity on check_variables - create one file which checks all vars in an easily understandable way.
-- [ ] integrate CRU 2
 - [ ] working on tables S3 and S7
 - [ ] more robustness checks.
