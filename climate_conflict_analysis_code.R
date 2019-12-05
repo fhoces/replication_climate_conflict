@@ -1,5 +1,5 @@
 ### constructing the output published in my thesis (all the tables)
-# note: this script does not construct figure 1 in my thesis, see alternative script
+# note: to construct figure 1 in my thesis, one has to download, unzip and place in working directory the original replication folder of the authors of the paper I analized
 
 ## setting up workspace
 
@@ -28,7 +28,6 @@ package_load <- function(x) {
       # IF package was not able to be loaded ten re-install
       
       install.packages(i, dependencies = T)
-      
     }
     
   }
@@ -39,12 +38,83 @@ packages <- c("ncdf4","tidyverse", "chron", "rgdal", "readxl", "splitstackshape"
 
 package_load(packages)
 
+theme_new <- function(base_size = 9,
+                      base_family = "",
+                      base_line_size = base_size / 170,
+                      base_rect_size = base_size / 170){
+  theme_minimal(base_size = base_size, 
+                base_family = base_family,
+                base_line_size = base_line_size) %+replace%
+    theme(
+      plot.title = element_text(
+        color = rgb(25, 43, 65, maxColorValue = 255), 
+        face = "bold",
+        hjust = 0),
+      axis.title = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.75)),
+      axis.text = element_text(
+        color = rgb(105, 105, 105, maxColorValue = 255),
+        size = rel(0.5)),
+      panel.grid.major = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted"),   
+      panel.grid.minor = element_line(
+        rgb(105, 105, 105, maxColorValue = 255),
+        linetype = "dotted", 
+        size = rel(2)),   
+      
+      complete = TRUE
+    )
+}
+
+theme_set(theme_new())
+
+# load orginal 
+
+climate_conflict_original <- read.dta("./climate_conflict_replication_(original)/climate_conflict.dta")
 
 # load analysis data
 
 climate_conflict <- read_csv("./analysis_data/climate_conflict.csv")
 
 climate_conflict_alternative <- read_csv("./analysis_data/climate_conflict_alternativecountryset.csv")
+
+# country value harmonization
+
+unique(climate_conflict_original$country[!climate_conflict_original$country %in% mydata$countryname]) # Cote d`Ivoire 
+
+unique(mydata$countryname[!mydata$countryname %in% climate_conflict_original$country])
+
+
+climate_conflict_original$country[climate_conflict_original$country == "Cote d`Ivoire"] <- "Cote d'Ivoire"
+
+# we left-join ... we seize down to original data obserations, whereas in our data sample there's more observations.
+
+var_check <- climate_conflict_original %>% left_join(mydata, by = c("year_actual" = "years" , "country" = "countryname"))
+
+
+# figure 1
+
+
+tikz(file = "firstclimateplots.tex", width = 2.2, height = 2.2)
+
+climateplot1 <- ggplot(var_check, aes(tmp, temp_all)) +
+  geom_point(aes(colour = factor(country)), size = 0.5) +
+  geom_abline(intercept = 0, slope = 1, colour="black", size=0.5)+
+  labs(x = "Temperature in CRU 4.03", y = "Temperature in CRU 2.1" )+
+  theme(legend.position = "none")
+
+climateplot2 <- ggplot(var_check, aes(pre, prec_all)) +
+  geom_point(aes(colour = factor(country)), size = 0.5) +
+  geom_abline(intercept = 0, slope = 1,colour="black", size=0.5) +
+  labs(x = "Precipitaion in CRU 4.03", y= "Precipiation in CRU 2.1")+
+  theme(legend.position = "none")
+
+climateplot1
+climateplot2
+dev.off()
+
 
 ## regressions
 
