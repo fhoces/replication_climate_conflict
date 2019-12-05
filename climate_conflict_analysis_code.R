@@ -4,7 +4,7 @@
 ## setting up workspace
 
 rm(list = ls())
-setwd("C:/R/bachelorproject")
+setwd("C:/R/richter_climate_conflict_replication_exercise")
 options(scipen = 999)
 subfolder_names <- c("analysis_data", "raw_data")
 

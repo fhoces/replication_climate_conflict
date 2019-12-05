@@ -4,7 +4,7 @@
 ## setting up workspace
 
 rm(list = ls())
-setwd("C:/R/bachelorproject")
+setwd("C:/R/richter_climate_conflict_replication_exercise")
 options(scipen = 999, digits = 2)
 
 # load packages
