@@ -619,7 +619,7 @@ conflict <- conflict %>% rename(countryname = SideA)
 
 # get countrynames from burke
 
-# ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 188.
+# ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 201.
 
 africancountries <- data.frame(iso3 = iso3afr,
                                countryname = c("Guinea-Bissau", 
@@ -793,7 +793,7 @@ data("pwt6.2")
 pwt6.2$isocode <- as.character(pwt6.2$isocode)
 pwt6.2$year <- as.character(pwt6.2$year)
 
-# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION.
+# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED HERE.
 
 pwt6.2$isocode[pwt6.2$isocode == "ZAR"] <- "COD"
 
@@ -860,7 +860,7 @@ polityjoin <- polityjoin %>% filter(year >= 1980, year <= 2006) %>%
   select(years = year, iso3, polity2)
 polityjoin$years <- as.character(polityjoin$years)
 polityjoin$polity2_lag <- dplyr::lag(polityjoin$polity2)
-# ANALYTICAL CHOICE MADE OF TYPE DATA RE-SHAPING. COMBINING PREVIOUSLY GENERATED CLIMATE-CONFLICT DATA WITH POLITIC SCORE (JOINED BY ISO3 AND YEARS).
+# ANALYTICAL CHOICE MADE OF TYPE DATA RE-SHAPING. FIRST RECORDED HERE. COMBINING PREVIOUSLY GENERATED CLIMATE-CONFLICT DATA WITH POLITIC SCORE (JOINED BY ISO3 AND YEARS).
 
 climate_conflict <- left_join(climate_conflict, polityjoin, by = c("iso3", "years")) # we have one more obs. now .. what happened there?
 table(climate_conflict$countryname) # ethiopia has 27 obs. instead of 26
@@ -890,7 +890,7 @@ write_csv(climate_conflict,"./analysis_data/climate_conflict.csv")
 climate_conflict <- climate_conflict %>% filter(years <= 2002)
 
 
-## check completeness óf data
+## check completeness Ã³f data
 
 
 view(climate_conflict[rowSums(is.na(climate_conflict)) >0 & climate_conflict$years <= 2002, ])
@@ -915,7 +915,7 @@ pwt9.1 <- pwt9.1 %>% filter(year>= 1980, year<= 2006) %>% select(iso3 = isocode,
 
 pwt9.1 <- pwt9.1 %>% transmute(iso3, years, gdp_pwt9 = gdp_pwt9_total/(pop*1000000)) # derive GDP per capita , population is in milions
 
-# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 818.
+# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 805.
 
 pwt9.1$gdp_pwt9 <- pwt9.1$gdp_pwt9*1000
 pwt9.1$gdp_pwt9_lag <- dplyr::lag(pwt9.1$gdp_pwt9)
@@ -931,7 +931,7 @@ climate_conflict[is.na(climate_conflict$gdp_pwt9_lag),] # SOM
 
 ## Polity IV current dataset (2018)
 
-# ANALYITCAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED HERE.
+# ANALYTICAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED HERE.
 
 polity_url <- "http://www.systemicpeace.org/inscr/p4v2018.xls"
 dest_polity <- "./raw_data/polity/polityIV.xls"
@@ -958,7 +958,7 @@ unique(polityjoin2$country[is.na(polityjoin2$iso3)])
 # can we find african countries? 
 # Cote D'Ivoire, Ivory coast, congo brazzaville (this is republic) , congo kinshasa (this is democratic republic), gambia, 
 
-# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED IN LINE 852.
+# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED IN LINE 841.
 
 polity2$country <- recode(polity2$country,
                          "Cote D'Ivoire" = "Cote d'Ivoire",
@@ -971,28 +971,24 @@ polityjoin2 <- left_join(polity2, africancountries, by= c("country" = "countryna
 uniqueN(polityjoin2$country[!is.na(polityjoin2$iso3)]) # 41 iso codes --> good
 
 
-## ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 862.
+## ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 855.
 ## using polity2 as meassure of political system.
 
 polityjoin2 <- polityjoin2 %>% filter(year >= 1980, year <= 2006) %>%
   select(years = year, iso3, polity2_2018 = polity2)
 polityjoin2$years <- as.character(polityjoin2$years)
 polityjoin2$polity2_2018_lag <- dplyr::lag(polityjoin2$polity2_2018)
-# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 874.
+
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 863.
 
 climate_conflict <- left_join(climate_conflict, polityjoin2, by = c("iso3", "years")) ## ui, we have one more obs. now .. what happened there?
 table(climate_conflict$countryname) # ethiopia has 23 obs. instead of 22
 
-# ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED IN LINE 883.
+# ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED IN LINE 872.
 
 climate_conflict <- climate_conflict[!(climate_conflict$countryname == "Ethiopia" & climate_conflict$years == 1993 & climate_conflict$polity2_2018 == 0),]
 
-
-
 climate_conflict[is.na(climate_conflict$polity2_2018_lag),] # 9 missing values for Namibia, same as in polityIV 2008
-
-plot(climate_conflict$polity2_lag, climate_conflict$polity2_2018_lag) # only small changes.
-
 
 ## running the CRU data over the wrld_simpl data from maptools package
 # ANALYTICAL CHOICE OF TYPE DATASET CHOICE. RECORDED FIRST HERE.
@@ -1131,7 +1127,7 @@ dim(country_pre2)
 country_pre_ann2 <- country_pre2 %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(pre_wrld_simpl=mean(pre_wrld_simpl))
 
 # adjust unit : divide by 100
-# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE ....
+# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 525.
 
 country_pre_ann2$pre_wrld_simpl <- country_pre_ann2$pre_wrld_simpl/100
 
@@ -1299,7 +1295,7 @@ names(country_pre2)[1] <- "iso3"
 country_pre2
 
 # restructuring the table -> we want the pre information for the month not in columns but in one column , each obs. being a row
-# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 283.
+# ANALYTICAL CHOICE OF TYPE DATA RE-SHAPING. FIRST RECORDED IN LINE 298.
 
 country_pre_num2 <- subset(country_pre2, select = -iso3) # need this subset with only the numerical values to use function ; _num stands for numerical
 pre_vec1 <- as.vector(t(country_pre_num2))
@@ -1322,7 +1318,7 @@ dim(country_pre2)
 country_pre_ann2 <- country_pre2 %>% separate(months, into=c("years", "months")) %>% group_by(iso3, years)%>% summarise(pre_alt_countries=mean(pre_alt_countries))
 
 # adjust unit : divide by 100
-# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE ....
+# ANALYTICAL CHOICE OF TYPE UNIT CHANGE. FIRST RECORDED IN LINE 525.
 
 country_pre_ann2$pre_alt_countries <- country_pre_ann2$pre_alt_countries/100
 
@@ -1331,7 +1327,7 @@ table(country_pre_ann2$years)
 table(country_pre_ann2$iso3)
 
 # create lag
-# ANALYTICAL CHOICE OF TYPE VARIABLE TRANSFORMATION. FIRST RECORDED IN LINE 326.
+# ANALYTICAL CHOICE OF TYPE VARIABLE TRANSFORMATION. FIRST RECORDED IN LINE 325.
 
 country_pre_ann2 <- country_pre_ann2 %>% mutate(pre_alt_countries_lag = dplyr::lag(pre_alt_countries))
 
@@ -1351,7 +1347,7 @@ country_pre_ann2 <- country_pre_ann2 %>% mutate(pre_alt_countries_diff = pre_alt
 
 ### import conflict data
 
-# ANALYTICAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED IN LINE 591.
+# ANALYTICAL CHOICE OF TYPE DATASET CHOICE. FIRST RECORDED IN LINE 580.
 
 xlsurl <- "https://www.prio.org/Global/upload/CSCW/Data/UCDP/2008/MainConflictTable.xls"
 xlspath <- "./raw_data/conflict/"
@@ -1380,14 +1376,14 @@ conflict <- cSplit(conflict, "SideA", sep = ",", direction = "long", type.conver
 
 # rename and define the incidence of conflict as conflict in the countries territory -> this seems to be what burke et al. did
 
-# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 626.
+# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. RECORDED FIRST IN LINE 615.
 # we use the SideA as the indice for a war , not e.g. Location indicator in PRIO dataset
 
 conflict <- conflict %>% rename(countryname = SideA)
 
 # get countrynames from burke and extra google
 
-## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FOR FIRST TIME IN LINE 144.
+## ANALYTICAL CHOICE OF TYPE DATA SUB-SETTING. RECORDED FIRST TIME HERE.
 
 africancountries <- data.frame(iso3 = iso3afralternative,
                                countryname = c("Guinea-Bissau", 
@@ -1482,7 +1478,7 @@ africancountries$countryname[!africancountries$countryname %in% conflict$country
 #         "Madagascar" --> no war recorded
 # let's redefine (we redefine it in the conflict table for easier comparability to original results)
 
-# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED IN LINE 703.
+# ANALYTICAL CHOICE OF TYPE VALUE HARMONIZATION. FIRST RECORDED IN LINE 698.
 
 conflict$countryname <- recode(conflict$countryname,
                                "Gambia" = "Gambia, The",
@@ -1539,14 +1535,14 @@ climate_conflict[is.na(climate_conflict$conflict),] # no more NA's
 climate_conflict_alternative <- climate_conflict_alternative %>% arrange(iso3, years)
 
 # create conflict onset variable
-# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 776.
+# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 763.
 # IF THERE IS A CONFLICT IN ONE YEAR AND THERE WAS NO CONFLICT RECORDED IN THE YEAR BEFORE, CONFLICT_ONSET IS SET TO 1.
 
 conflict_onset_rows <- which(climate_conflict_alternative$conflict == 1 & dplyr::lag(climate_conflict_alternative$conflict)==0 & dplyr::lag(climate_conflict_alternative$countryname) == climate_conflict_alternative$countryname) #creates rowIDs where conflict onsets
 climate_conflict_alternative$conflict_onset <- 0
 climate_conflict_alternative[conflict_onset_rows,]$conflict_onset <- 1 
 
-# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED HERE.
+# ANALYTICAL CHOICE OF TYPE VARIABLE DEFINITION. FIRST RECORDED IN LINE 770.
 # we define onset variable "as missing if there was an ongoing civil war that began in an earlier year" (cited by manual)
 
 climate_conflict_alternative$conflict_onset[climate_conflict_alternative$conflict == 1 & climate_conflict_alternative$conflict_onset == 0] <- NA
@@ -1580,7 +1576,7 @@ table(climate_conflict_alternative$countryname) # ethiopia has 27 obs. instead o
 # quick wikipedia search shows they got a new constitution in 1994, probably has something to do with that
 # it's behind my scope to decide which one is better.. but it changed only marginaly from 0 to 1 
 # the authors decided to use the obs. with the value 0 (for unclear reason, but they were probably indifferent in their choice)
-# ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED HERE.
+# ANALYTICAL CHOICE OF TYPE DATA-SUBSETTING. FIRST RECORDED IN LINE 872.
 
 climate_conflict_alternative <- climate_conflict_alternative[!(climate_conflict_alternative$countryname == "Ethiopia" & climate_conflict_alternative$years == 1993 & climate_conflict_alternative$polity2 == 1),]
 
@@ -1600,7 +1596,7 @@ unique(polityNA$iso3) # most of the new countries
 climate_conflict_alternative <- climate_conflict_alternative %>% filter(years <= 2002)
 
 
-## check completeness óf data
+## check completeness Ã³f data
 
 
 view(climate_conflict_alternative[rowSums(is.na(climate_conflict_alternative)) >0 & climate_conflict_alternative$years <= 2002, ])
